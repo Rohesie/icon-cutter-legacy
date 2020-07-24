@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::prelude::*;
 use yaml_rust::YamlLoader;
+use std::collections::HashMap;
 
 use super::glob;
 use super::helpers;
@@ -22,6 +23,19 @@ pub struct PrefHolder {
 	pub south_step: u32,
 
 	pub produce_corners: bool,
+
+	pub pure_horizontal: bool,
+	pub pure_vertical: bool,
+	pub pure_flat: bool,
+
+	pub horizontal_x: u32,
+	pub horizontal_y: u32,
+
+	pub vertical_x: u32,
+	pub vertical_y: u32,
+
+	pub flat_x: u32,
+	pub flat_y: u32,
 
 	pub se_convex_x: u32,
 	pub se_convex_y: u32,
@@ -70,12 +84,12 @@ pub struct PrefHolder {
 }
 
 impl PrefHolder {
-	pub fn build_corners(&self) -> Vec<Vec<image::DynamicImage>> {
+	pub fn build_corners_and_prefabs(&self) -> (Vec<Vec<image::DynamicImage>>, HashMap<u8, image::DynamicImage> /*ArrayVec<[image::DynamicImage; 3]>*/) {
 		let mut img = image::open(&self.file_to_open).unwrap();
-	
+
 		//Index defined by glob::CORNER_DIRS
 		let mut corners: Vec<Vec<image::DynamicImage>> = vec![vec![], vec![], vec![], vec![]];
-	
+
 		for corner_dir in glob::CORNER_DIRS.iter() {
 			for corner_type in glob::CORNER_TYPES.iter() {
 				let corner_params = self.get_corner_params(*corner_dir, *corner_type);
@@ -86,7 +100,22 @@ impl PrefHolder {
 				corners[*corner_dir as usize].push(corner_img);
 			}
 		}
-		return corners;
+
+		let mut prefabs: HashMap<u8, image::DynamicImage> =  HashMap::new();
+		if self.pure_horizontal {
+			let corner_img = img.crop(glob::TILE_SIZE * self.horizontal_x, glob::TILE_SIZE * self.horizontal_y, glob::TILE_SIZE, glob::TILE_SIZE);
+			prefabs.insert(glob::HORIZONTAL, corner_img);
+		}
+		if self.pure_vertical {
+			let corner_img = img.crop(glob::TILE_SIZE * self.vertical_x, glob::TILE_SIZE * self.vertical_y, glob::TILE_SIZE, glob::TILE_SIZE);
+			prefabs.insert(glob::VERTICAL, corner_img);
+		}
+		if self.pure_flat {
+			let corner_img = img.crop(glob::TILE_SIZE * self.flat_x, glob::TILE_SIZE * self.flat_y, glob::TILE_SIZE, glob::TILE_SIZE);
+			prefabs.insert(glob::FLAT, corner_img);
+		}
+
+		return (corners, prefabs);
 	}
 	pub fn get_corner_params(&self, corner_dir: u8, corner_type: u8) -> (u32, u32, u32, u32) {
 		match corner_dir {
@@ -161,6 +190,17 @@ pub fn load_configs() -> PrefHolder {
 		south_step: glob::TILE_SIZE - conf_center_y,
 
 		produce_corners: doc["produce_corners"].as_bool().unwrap(),
+
+		pure_horizontal: doc["pure_horizontal"].as_bool().unwrap(),
+		pure_vertical: doc["pure_vertical"].as_bool().unwrap(),
+		pure_flat: doc["pure_flat"].as_bool().unwrap(),
+
+		horizontal_x: doc["horizontal_x"].as_i64().unwrap() as u32,
+		horizontal_y: doc["horizontal_y"].as_i64().unwrap() as u32,
+		vertical_x: doc["vertical_x"].as_i64().unwrap() as u32,
+		vertical_y: doc["vertical_y"].as_i64().unwrap() as u32,
+		flat_x: doc["flat_x"].as_i64().unwrap() as u32,
+		flat_y: doc["flat_y"].as_i64().unwrap() as u32,
 
 		se_convex_x: doc["se_convex_x"].as_i64().unwrap() as u32,
 		se_convex_y: doc["se_convex_y"].as_i64().unwrap() as u32,

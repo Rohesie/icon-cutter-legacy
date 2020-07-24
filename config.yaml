@@ -1,9 +1,9 @@
 #The path of the file to open.
-file_to_open: "./colors.png"
+file_to_open: "./metal_reinforced.png"
 
 #Name for the file to output and the icon-state prefixes.
 #Example output with "wall" as input: "wall.png" -> wall-0-0-0-0, wall-0-0-0-1, wall-0-0-1-0...
-output_name: "colors"
+output_name: "reinforced"
 
 #Tiles are 32x32 squares, so the possible coordinates here range from (0,0) in the top-left corner to (32,32) in the bottom-right one.
 #Of course, both of those extremes, plus things beyond them, are invalid options.
@@ -20,6 +20,28 @@ produce_corners: false
 #The top-left tile is in coordinates (0,0).
 #The maximum valid x value is ((pixel-width / 32) - 1), substitute for height for y.
 #This means that a hypothetical rectangle with 3x2 sprites, 3 in the x-axis and 2 in the y, will range from coordinates (0,0) to (2,1).
+
+##Unique prefabs first, we take tiles wholesale from the image.
+# If the boolean value is false, it will assemble them through the corners system.
+
+#Purely horizontal tile, all corners are horizontal.
+pure_horizontal: true
+horizontal_x: 1
+horizontal_y: 3
+
+#Purely vertical tile, all corners are vertical.
+pure_vertical: true
+vertical_x: 3
+vertical_y: 1
+
+#Purely flat tile, all corners are flat.
+pure_flat: true
+flat_x: 5
+flat_y: 1
+
+##Corners after, to mount wall combinations.
+
+#Convex corners.
 se_convex_x: 3
 se_convex_y: 3
 nw_convex_x: 3
@@ -29,38 +51,42 @@ ne_convex_y: 3
 sw_convex_x: 3
 sw_convex_y: 3
 
-se_concave_x: 1
-se_concave_y: 1
-nw_concave_x: 1
-nw_concave_y: 1
-ne_concave_x: 1
-ne_concave_y: 1
-sw_concave_x: 1
-sw_concave_y: 1
+#Concave corners.
+se_concave_x: 0
+se_concave_y: 0
+nw_concave_x: 2
+nw_concave_y: 2
+ne_concave_x: 0
+ne_concave_y: 2
+sw_concave_x: 2
+sw_concave_y: 0
 
-se_horizontal_x: 1
+#Impure horizontal corners: in tiles that have at least one non-horizontal corner.
+se_horizontal_x: 0
 se_horizontal_y: 3
-nw_horizontal_x: 1
+nw_horizontal_x: 2
 nw_horizontal_y: 3
-ne_horizontal_x: 1
+ne_horizontal_x: 0
 ne_horizontal_y: 3
-sw_horizontal_x: 1
+sw_horizontal_x: 2
 sw_horizontal_y: 3
 
+#Impure vertical corners: in tiles that have at least one non-vertical corner.
 se_vertical_x: 3
-se_vertical_y: 1
+se_vertical_y: 0
 nw_vertical_x: 3
-nw_vertical_y: 1
+nw_vertical_y: 2
 ne_vertical_x: 3
-ne_vertical_y: 1
+ne_vertical_y: 2
 sw_vertical_x: 3
-sw_vertical_y: 1
+sw_vertical_y: 0
 
-se_flat_x: 5
-se_flat_y: 1
-nw_flat_x: 5
-nw_flat_y: 1
-ne_flat_x: 5
-ne_flat_y: 1
-sw_flat_x: 5
-sw_flat_y: 1
+#Impure flat corners: in tiles that have at least one non-flat corner.
+se_flat_x: 4
+se_flat_y: 0
+nw_flat_x: 6
+nw_flat_y: 2
+ne_flat_x: 4
+ne_flat_y: 2
+sw_flat_x: 6
+sw_flat_y: 0

@@ -86,7 +86,9 @@ fn main() {
 
 fn build_walls() {
 	let prefs = config::load_configs();
-	let corners = prefs.build_corners();
+	let corners_and_prefabs = prefs.build_corners_and_prefabs();
+	let corners = corners_and_prefabs.0;
+	let prefabs = corners_and_prefabs.1;
 	let possible_walls = prepare_walls();
 
 	let number_of_walls = possible_walls.len() as u32;
@@ -98,10 +100,17 @@ fn build_walls() {
 
 	let output_name = prefs.output_name.to_string();
 	for wall_signature in possible_walls.iter() {
-		imageops::replace(&mut new_wall, &corners[glob::NW_INDEX as usize][wall_signature[glob::NW_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.west_start, prefs.north_start);
-		imageops::replace(&mut new_wall, &corners[glob::NE_INDEX as usize][wall_signature[glob::NE_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.east_start, prefs.north_start);
-		imageops::replace(&mut new_wall, &corners[glob::SE_INDEX as usize][wall_signature[glob::SE_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.east_start, prefs.south_start);
-		imageops::replace(&mut new_wall, &corners[glob::SW_INDEX as usize][wall_signature[glob::SW_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.west_start, prefs.south_start);
+		match wall_signature {
+			[2, 2, 2, 2] if prefs.pure_horizontal => imageops::replace(&mut new_wall, &prefabs[&glob::HORIZONTAL], index * glob::TILE_SIZE, prefs.north_start),
+			[3, 3, 3, 3] if prefs.pure_vertical => imageops::replace(&mut new_wall, &prefabs[&glob::VERTICAL], index * glob::TILE_SIZE, prefs.north_start),
+			[4, 4, 4, 4] if prefs.pure_flat => imageops::replace(&mut new_wall, &prefabs[&glob::FLAT], index * glob::TILE_SIZE, prefs.north_start),
+			_ => {
+				imageops::replace(&mut new_wall, &corners[glob::NW_INDEX as usize][wall_signature[glob::NW_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.west_start, prefs.north_start);
+				imageops::replace(&mut new_wall, &corners[glob::NE_INDEX as usize][wall_signature[glob::NE_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.east_start, prefs.north_start);
+				imageops::replace(&mut new_wall, &corners[glob::SE_INDEX as usize][wall_signature[glob::SE_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.east_start, prefs.south_start);
+				imageops::replace(&mut new_wall, &corners[glob::SW_INDEX as usize][wall_signature[glob::SW_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.west_start, prefs.south_start);
+			}
+		}
 		let string_signature = format!("state = \"{}-{}-{}-{}-{}\"\n\tdirs = 1\n\tframes = 1\n", &output_name, wall_signature[glob::NE_INDEX as usize], wall_signature[glob::SE_INDEX as usize], wall_signature[glob::SW_INDEX as usize], wall_signature[glob::NW_INDEX as usize]);
 		dmi_signature.push_str(&string_signature);
 		index += 1;
