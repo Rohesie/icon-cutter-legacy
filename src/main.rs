@@ -1,7 +1,10 @@
+#![allow(dead_code)]
+
 //Internal modules.
 mod glob;
 mod config;
 mod helpers;
+mod dmi;
 
 //To do the image manipulation.
 use image::imageops;
@@ -12,75 +15,6 @@ use std::path::Path;
 use std::io::prelude::*;
 
 fn main() {
-	//let mut img = image::open("./wall_brick_final.png").unwrap();
-	//println!("dimensions {:?}", img.dimensions());
-	//println!("color {:?}", img.color());
-	/*
-	let prefs = config::load_configs();
-	println!("{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n
-	{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n",
-	prefs.file_to_open,
-	prefs.output_name,
-	prefs.center_x,
-	prefs.center_y,
-
-	prefs.west_start,
-	prefs.west_step,
-	prefs.east_start,
-	prefs.east_step,
-	prefs.north_start,
-	prefs.north_step,
-	prefs.south_start,
-	prefs.south_step,
-
-	prefs.produce_corners,
-
-	prefs.se_convex_x,
-	prefs.se_convex_y,
-	prefs.nw_convex_x,
-	prefs.nw_convex_y,
-	prefs.ne_convex_x,
-	prefs.ne_convex_y,
-	prefs.sw_convex_x,
-	prefs.sw_convex_y,
-
-	prefs.se_concave_x,
-	prefs.se_concave_y,
-	prefs.nw_concave_x,
-	prefs.nw_concave_y,
-	prefs.ne_concave_x,
-	prefs.ne_concave_y,
-	prefs.sw_concave_x,
-	prefs.sw_concave_y,
-
-	prefs.se_horizontal_x,
-	prefs.se_horizontal_y,
-	prefs.nw_horizontal_x,
-	prefs.nw_horizontal_y,
-	prefs.ne_horizontal_x,
-	prefs.ne_horizontal_y,
-	prefs.sw_horizontal_x,
-	prefs.sw_horizontal_y,
-
-	prefs.se_vertical_x,
-	prefs.se_vertical_y,
-	prefs.nw_vertical_x,
-	prefs.nw_vertical_y,
-	prefs.ne_vertical_x,
-	prefs.ne_vertical_y,
-	prefs.sw_vertical_x,
-	prefs.sw_vertical_y,
-
-	prefs.se_flat_x,
-	prefs.se_flat_y,
-	prefs.nw_flat_x,
-	prefs.nw_flat_y,
-	prefs.ne_flat_x,
-	prefs.ne_flat_y,
-	prefs.sw_flat_x,
-	prefs.sw_flat_y,
-	);
-	*/
 	build_walls();
 }
 
@@ -101,49 +35,48 @@ fn build_walls() {
 	let output_name = prefs.output_name.to_string();
 	for wall_signature in possible_walls.iter() {
 		match wall_signature {
-			[2, 2, 2, 2] if prefs.pure_horizontal => imageops::replace(&mut new_wall, &prefabs[&glob::HORIZONTAL], index * glob::TILE_SIZE, prefs.north_start),
-			[3, 3, 3, 3] if prefs.pure_vertical => imageops::replace(&mut new_wall, &prefabs[&glob::VERTICAL], index * glob::TILE_SIZE, prefs.north_start),
-			[4, 4, 4, 4] if prefs.pure_flat => imageops::replace(&mut new_wall, &prefabs[&glob::FLAT], index * glob::TILE_SIZE, prefs.north_start),
+			&glob::ADJ_N_S if prefs.pure_vertical => imageops::replace(&mut new_wall, &prefabs[&glob::VERTICAL], index * glob::TILE_SIZE, prefs.north_start),
+			&glob::ADJ_E_W if prefs.pure_horizontal => imageops::replace(&mut new_wall, &prefabs[&glob::HORIZONTAL], index * glob::TILE_SIZE, prefs.north_start),
+			&glob::ADJ_ALL if prefs.pure_flat => imageops::replace(&mut new_wall, &prefabs[&glob::FLAT], index * glob::TILE_SIZE, prefs.north_start),
 			_ => {
-				imageops::replace(&mut new_wall, &corners[glob::NW_INDEX as usize][wall_signature[glob::NW_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.west_start, prefs.north_start);
-				imageops::replace(&mut new_wall, &corners[glob::NE_INDEX as usize][wall_signature[glob::NE_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.east_start, prefs.north_start);
-				imageops::replace(&mut new_wall, &corners[glob::SE_INDEX as usize][wall_signature[glob::SE_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.east_start, prefs.south_start);
-				imageops::replace(&mut new_wall, &corners[glob::SW_INDEX as usize][wall_signature[glob::SW_INDEX as usize] as usize], (index * glob::TILE_SIZE) + prefs.west_start, prefs.south_start);
+				imageops::replace(&mut new_wall, &corners[glob::NW_INDEX as usize][helpers::smooth_dir_to_corner_type(glob::NW_INDEX, *wall_signature) as usize], (index * glob::TILE_SIZE) + prefs.west_start, prefs.north_start);
+				imageops::replace(&mut new_wall, &corners[glob::NE_INDEX as usize][helpers::smooth_dir_to_corner_type(glob::NE_INDEX, *wall_signature) as usize], (index * glob::TILE_SIZE) + prefs.east_start, prefs.north_start);
+				imageops::replace(&mut new_wall, &corners[glob::SE_INDEX as usize][helpers::smooth_dir_to_corner_type(glob::SE_INDEX, *wall_signature) as usize], (index * glob::TILE_SIZE) + prefs.east_start, prefs.south_start);
+				imageops::replace(&mut new_wall, &corners[glob::SW_INDEX as usize][helpers::smooth_dir_to_corner_type(glob::SW_INDEX, *wall_signature) as usize], (index * glob::TILE_SIZE) + prefs.west_start, prefs.south_start);
 			}
 		}
-		let string_signature = format!("state = \"{}-{}-{}-{}-{}\"\n\tdirs = 1\n\tframes = 1\n", &output_name, wall_signature[glob::NE_INDEX as usize], wall_signature[glob::SE_INDEX as usize], wall_signature[glob::SW_INDEX as usize], wall_signature[glob::NW_INDEX as usize]);
+		let string_signature = format!("state = \"{}-{}\"\n\tdirs = 1\n\tframes = 1\n", &output_name, wall_signature);
 		dmi_signature.push_str(&string_signature);
 		index += 1;
 	}
-
-	new_wall.save(format!("{}.png", output_name)).unwrap();
 	dmi_signature += "# END DMI\n";
 
-	let path = format!("{}_dmi_signature.txt", &prefs.output_name);
-	let path = Path::new(&path);
-	let display = path.display();
-	let mut file = match File::create(&path) {
-		Err(why) => panic!("couldn't create {}: {}", display, why),
-		Ok(file) => file,
-	};
-	match file.write_all(dmi_signature.as_bytes()) {
-		Err(why) => panic!("couldn't write to {}: {}", display, why),
-		Ok(_) => println!("successfully wrote to {}", display),
-	}
+	let png_path = format!("{}.png", output_name);
+	new_wall.save(png_path).unwrap();
+
+	let png_path = format!("{}.png", output_name);
+	let path = Path::new(&png_path);
+	let mut png_file = File::open(&path).expect("Failed to open created png.");
+
+	let mut image_bytes: Vec<u8> = vec![];
+	png_file.read_to_end(&mut image_bytes).expect("Error while reading the created png file.");
+
+	let mut dmi = dmi::dmi_from_vec(&image_bytes).unwrap();
+	dmi.write_ztxt_chunk(dmi_signature).unwrap();
+
+	let dmi_path = format!("{}.dmi", output_name);
+	dmi.save(dmi_path).unwrap();
 
 	println!("Number of wall sprites produced: {}", number_of_walls);
 
 }
 
-fn prepare_walls() -> Vec<[u8; 4]> {
-	let mut wall_variations: Vec<[u8; 4]> = vec![];
+fn prepare_walls() -> Vec<u8> {
+	let mut wall_variations: Vec<u8> = vec![];
 	for smooth_dirs in glob::NONE ..= glob::ADJ_ALL {
-		let mut four_corners = [glob::NONE, glob::NONE, glob::NONE, glob::NONE];
-		for corner_index in glob::CORNER_DIRS.iter() {
-			four_corners[*corner_index as usize] = helpers::smooth_dir_to_corner_type(*corner_index, smooth_dirs)
-		}
-		if !wall_variations.contains(&four_corners) {
-			wall_variations.push(four_corners);
+		let combination_key = helpers::smooth_dir_to_combination_key(smooth_dirs);
+		if !wall_variations.contains(&combination_key) {
+			wall_variations.push(combination_key);
 		}
 	}
 	wall_variations.sort();

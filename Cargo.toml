@@ -9,3 +9,5 @@ edition = "2018"
 [dependencies]
 image = "0.23.6"
 yaml-rust = "0.4.4"
+png = "0.16.7"
+deflate = "0.8.6"

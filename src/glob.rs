@@ -30,23 +30,14 @@
 	pub const ADJ_S:u8 = 1<<1;
 	pub const ADJ_E:u8 = 1<<2;
 	pub const ADJ_W:u8 = 1<<3;
-	
 	pub const ADJ_NE:u8 = 1<<4;
 	pub const ADJ_SE:u8 = 1<<5;
 	pub const ADJ_SW:u8 = 1<<6;
 	pub const ADJ_NW:u8 = 1<<7;
 
-	pub const ADJ_ALL:u8 = !0;
-
-	/*
 	pub const ADJ_CARDINALS: [u8; 4] = [ADJ_N, ADJ_E, ADJ_S, ADJ_W];
-	pub const ADJ_DIAGONALS: [u8; 4] = [ADJ_NE, ADJ_SE, ADJ_SW, ADJ_NW];
-	*/
 
-	/*
-	//BYOND dirs
-	pub const NORTH:u8 = 1<<0;
-	pub const SOUTH:u8 = 1<<1;
-	pub const EAST:u8 = 1<<2;
-	pub const WEST:u8 = 1<<3;
-	*/
+	pub const ADJ_N_S:u8 = ADJ_N | ADJ_S;
+	pub const ADJ_E_W:u8 = ADJ_E | ADJ_W;
+	
+	pub const ADJ_ALL:u8 = !0;

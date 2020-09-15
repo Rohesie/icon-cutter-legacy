@@ -1,9 +1,9 @@
 #The path of the file to open.
-file_to_open: "./metal_reinforced.png"
+file_to_open: "./color_input.png"
 
 #Name for the file to output and the icon-state prefixes.
 #Example output with "wall" as input: "wall.png" -> wall-0-0-0-0, wall-0-0-0-1, wall-0-0-1-0...
-output_name: "reinforced"
+output_name: "color"
 
 #Tiles are 32x32 squares, so the possible coordinates here range from (0,0) in the top-left corner to (32,32) in the bottom-right one.
 #Of course, both of those extremes, plus things beyond them, are invalid options.
