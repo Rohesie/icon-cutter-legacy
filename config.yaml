@@ -2,7 +2,7 @@
 file_to_open: "./color_input.png"
 
 #Name for the file to output and the icon-state prefixes.
-#Example output with "wall" as input: "wall.png" -> wall-0-0-0-0, wall-0-0-0-1, wall-0-0-1-0...
+#Example output with "wall" as input: "wall.png" -> wall-0, wall-63, wall-137...
 output_name: "color"
 
 #Tiles are 32x32 squares, so the possible coordinates here range from (0,0) in the top-left corner to (32,32) in the bottom-right one.
@@ -12,7 +12,7 @@ output_name: "color"
 center_x: 16
 center_y: 6
 
-#If enabled, it will produce a file for every possible corner variant (20 in total).
+#If enabled, it will produce an image with every possible corner type variant (convex, concave, horizontal, vertical and flat).
 #Useful for debugging purposes.
 produce_corners: false
 

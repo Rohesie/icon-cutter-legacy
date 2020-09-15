@@ -2,9 +2,9 @@ use std::fs::File;
 use std::io::prelude::*;
 use yaml_rust::YamlLoader;
 use std::collections::HashMap;
+use image::imageops;
 
 use super::glob;
-use super::helpers;
 
 pub struct PrefHolder {
 	pub file_to_open: String,
@@ -94,11 +94,22 @@ impl PrefHolder {
 			for corner_type in glob::CORNER_TYPES.iter() {
 				let corner_params = self.get_corner_params(*corner_dir, *corner_type);
 				let corner_img = img.crop(corner_params.0, corner_params.1, corner_params.2, corner_params.3);
-				if self.produce_corners {
-					corner_img.save(format!("{}-corner-{}.png", &self.file_to_open, helpers::corner_to_string(*corner_dir, *corner_type))).unwrap();
-				}
 				corners[*corner_dir as usize].push(corner_img);
 			}
+		}
+
+		if self.produce_corners {
+			let x_length = glob::CORNER_TYPES.len() as u32;
+			let mut corners_image = image::DynamicImage::new_rgba8(x_length * glob::TILE_SIZE, 1 * glob::TILE_SIZE);
+			let mut index = 0;
+			for corner_type in glob::CORNER_TYPES.iter() {
+				imageops::replace(&mut corners_image, &corners[glob::NW_INDEX as usize][*corner_type as usize], (index * glob::TILE_SIZE) + self.west_start, (0 * glob::TILE_SIZE) + self.north_start);
+				imageops::replace(&mut corners_image, &corners[glob::NE_INDEX as usize][*corner_type as usize], (index * glob::TILE_SIZE) + self.east_start, (0 * glob::TILE_SIZE) + self.north_start);
+				imageops::replace(&mut corners_image, &corners[glob::SE_INDEX as usize][*corner_type as usize], (index * glob::TILE_SIZE) + self.east_start, (0 * glob::TILE_SIZE) + self.south_start);
+				imageops::replace(&mut corners_image, &corners[glob::SW_INDEX as usize][*corner_type as usize], (index * glob::TILE_SIZE) + self.west_start, (0 * glob::TILE_SIZE) + self.south_start);
+				index += 1;
+			}
+			corners_image.save(format!("{}-corners.png", &self.output_name)).unwrap();
 		}
 
 		let mut prefabs: HashMap<u8, image::DynamicImage> =  HashMap::new();
