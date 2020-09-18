@@ -2,12 +2,12 @@
 #v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#
 #The path of the file to open.
 #png support only for now.
-file_to_open: "./input.png"
+file_to_open: "./tg-nondiagonal-input.png"
 
 #Name for the file to output and the icon-state prefixes.
 #Example output with "wall" as input: "wall.dmi" -> wall-0, wall-63, wall-137...
 #Keep this name different from the input one if you don't have it backed up to avoid losing the old file.
-output_name: "output"
+output_name: "tg-nondiagonal-output"
 #^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
 
 
@@ -15,12 +15,12 @@ output_name: "output"
 #v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#
 #Possible icon coordinates here range from (0,0) in the top-left corner to (icon_size_x,icon_size_y) in the bottom-right one.
 icon_size_x: 32
-icon_size_y: 48
+icon_size_y: 32
 
 #Top-down sprites are centered in the middle: (16,16) for a 32x32 tile.
 #The same is not true in the Y axis for 3/4 walls in general, with the center being elevated by the perspective.
 center_x: 16
-center_y: 9
+center_y: 16
 #^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
 
 
@@ -32,59 +32,62 @@ center_y: 9
 #This means that a hypothetical rectangle with 3x2 sprites, 3 in the x-axis and 2 in the y, will range from coordinates (0,0) to (2,1).
 
 #v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#
-
 ##Standard corners.
-#These configs are necessary to be able to run the program.
 
 #Convex corners.
-se_convex_x: 0
-se_convex_y: 0
+#Necessary to be able to run the program.
 nw_convex_x: 0
 nw_convex_y: 0
-ne_convex_x: 0
+ne_convex_x: 1
 ne_convex_y: 0
-sw_convex_x: 0
+sw_convex_x: 2
 sw_convex_y: 0
-
-#Concave corners.
-se_concave_x: 1
-se_concave_y: 0
-nw_concave_x: 1
-nw_concave_y: 0
-ne_concave_x: 1
-ne_concave_y: 0
-sw_concave_x: 1
-sw_concave_y: 0
-
-#Horizontal corners.
-se_horizontal_x: 2
-se_horizontal_y: 0
-nw_horizontal_x: 2
-nw_horizontal_y: 0
-ne_horizontal_x: 2
-ne_horizontal_y: 0
-sw_horizontal_x: 2
-sw_horizontal_y: 0
+se_convex_x: 3
+se_convex_y: 0
 
 #Vertical corners.
-se_vertical_x: 3
-se_vertical_y: 0
-nw_vertical_x: 3
+#Necessary to be able to run the program.
+nw_vertical_x: 4
 nw_vertical_y: 0
-ne_vertical_x: 3
-ne_vertical_y: 0
-sw_vertical_x: 3
-sw_vertical_y: 0
+ne_vertical_x: 0
+ne_vertical_y: 1
+sw_vertical_x: 1
+sw_vertical_y: 1
+se_vertical_x: 2
+se_vertical_y: 1
+
+#Horizontal corners.
+#Necessary to be able to run the program.
+nw_horizontal_x: 3
+nw_horizontal_y: 1
+ne_horizontal_x: 4
+ne_horizontal_y: 1
+sw_horizontal_x: 0
+sw_horizontal_y: 2
+se_horizontal_x: 1
+se_horizontal_y: 2
+
+#Concave corners.
+#Necessary to be able to run the program.
+nw_concave_x: 2
+nw_concave_y: 2
+ne_concave_x: 3
+ne_concave_y: 2
+sw_concave_x: 4
+sw_concave_y: 2
+se_concave_x: 0
+se_concave_y: 3
 
 #Flat corners.
+#Optional.
+nw_flat_x: 1
+nw_flat_y: 3
+ne_flat_x: 2
+ne_flat_y: 3
+sw_flat_x: 3
+sw_flat_y: 3
 se_flat_x: 4
-se_flat_y: 0
-nw_flat_x: 4
-nw_flat_y: 0
-ne_flat_x: 4
-ne_flat_y: 0
-sw_flat_x: 4
-sw_flat_y: 0
+se_flat_y: 3
 
 #^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
 

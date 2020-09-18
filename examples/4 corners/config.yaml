@@ -2,12 +2,12 @@
 #v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#
 #The path of the file to open.
 #png support only for now.
-file_to_open: "./input.png"
+file_to_open: "./color-4-corners-input.png"
 
 #Name for the file to output and the icon-state prefixes.
 #Example output with "wall" as input: "wall.dmi" -> wall-0, wall-63, wall-137...
 #Keep this name different from the input one if you don't have it backed up to avoid losing the old file.
-output_name: "output"
+output_name: "color-4-corners-output"
 #^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
 
 
@@ -15,12 +15,12 @@ output_name: "output"
 #v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#
 #Possible icon coordinates here range from (0,0) in the top-left corner to (icon_size_x,icon_size_y) in the bottom-right one.
 icon_size_x: 32
-icon_size_y: 48
+icon_size_y: 32
 
 #Top-down sprites are centered in the middle: (16,16) for a 32x32 tile.
 #The same is not true in the Y axis for 3/4 walls in general, with the center being elevated by the perspective.
 center_x: 16
-center_y: 9
+center_y: 6
 #^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
 
 
@@ -34,9 +34,9 @@ center_y: 9
 #v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#
 
 ##Standard corners.
-#These configs are necessary to be able to run the program.
 
 #Convex corners.
+#Necessary to be able to run the program.
 se_convex_x: 0
 se_convex_y: 0
 nw_convex_x: 0
@@ -47,6 +47,7 @@ sw_convex_x: 0
 sw_convex_y: 0
 
 #Concave corners.
+#Necessary to be able to run the program.
 se_concave_x: 1
 se_concave_y: 0
 nw_concave_x: 1
@@ -57,6 +58,7 @@ sw_concave_x: 1
 sw_concave_y: 0
 
 #Horizontal corners.
+#Necessary to be able to run the program.
 se_horizontal_x: 2
 se_horizontal_y: 0
 nw_horizontal_x: 2
@@ -67,6 +69,7 @@ sw_horizontal_x: 2
 sw_horizontal_y: 0
 
 #Vertical corners.
+#Necessary to be able to run the program.
 se_vertical_x: 3
 se_vertical_y: 0
 nw_vertical_x: 3
@@ -77,14 +80,17 @@ sw_vertical_x: 3
 sw_vertical_y: 0
 
 #Flat corners.
-se_flat_x: 4
-se_flat_y: 0
-nw_flat_x: 4
-nw_flat_y: 0
-ne_flat_x: 4
-ne_flat_y: 0
-sw_flat_x: 4
-sw_flat_y: 0
+#Optional.
+##If all are present, output will include diagonal smoothing, generating 47 results.
+##Else it will produce 16 variant combinations.
+#se_flat_x: 4
+#se_flat_y: 0
+#nw_flat_x: 4
+#nw_flat_y: 0
+#ne_flat_x: 4
+#ne_flat_y: 0
+#sw_flat_x: 4
+#sw_flat_y: 0
 
 #^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
 

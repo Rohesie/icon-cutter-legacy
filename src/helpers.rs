@@ -1,11 +1,14 @@
 use super::glob;
 
-pub fn smooth_dir_to_combination_key(smooth_dirs:u8) -> u8 {
+pub fn smooth_dir_to_combination_key(smooth_dirs: u8, is_diagonal: bool) -> u8 {
 	let mut combination_key = glob::NONE;
 	for dir in glob::ADJ_CARDINALS.iter() {
 		if smooth_dirs & dir != glob::NONE {
 			combination_key |= dir;
 		}
+	}
+	if !is_diagonal {
+		return combination_key;
 	}
 	if smooth_dirs & glob::ADJ_N != glob::NONE {
 		if smooth_dirs & glob::ADJ_E != glob::NONE && smooth_dirs & glob::ADJ_NE != glob::NONE {
@@ -26,69 +29,69 @@ pub fn smooth_dir_to_combination_key(smooth_dirs:u8) -> u8 {
 	return combination_key;
 }
 
-pub fn smooth_dir_to_corner_type(corner:u8, smooth_dirs:u8) -> u8 {
+pub fn smooth_dir_to_corner_type(corner: u8, smooth_dirs: u8) -> u8 {
 	match corner {
 		glob::NE_INDEX => {
 			if smooth_dirs & glob::ADJ_N == glob::NONE {
 				if smooth_dirs & glob::ADJ_E == glob::NONE {
-					return glob::CONVEX
+					return glob::CONVEX;
 				}
-				return glob::HORIZONTAL
+				return glob::HORIZONTAL;
 			}
 			if smooth_dirs & glob::ADJ_E == glob::NONE {
-				return glob::VERTICAL
+				return glob::VERTICAL;
 			}
 			if smooth_dirs & glob::ADJ_NE == glob::NONE {
-				return glob::CONCAVE
+				return glob::CONCAVE;
 			}
 			glob::FLAT
-		},
+		}
 		glob::SE_INDEX => {
 			if smooth_dirs & glob::ADJ_S == glob::NONE {
-				if smooth_dirs & glob::ADJ_E == glob::NONE  {
-					return glob::CONVEX
+				if smooth_dirs & glob::ADJ_E == glob::NONE {
+					return glob::CONVEX;
 				}
-				return glob::HORIZONTAL
+				return glob::HORIZONTAL;
 			}
 			if smooth_dirs & glob::ADJ_E == glob::NONE {
-				return glob::VERTICAL
+				return glob::VERTICAL;
 			}
-			if smooth_dirs & glob::ADJ_SE == glob::NONE  {
-				return glob::CONCAVE
+			if smooth_dirs & glob::ADJ_SE == glob::NONE {
+				return glob::CONCAVE;
 			}
 			glob::FLAT
-		},
+		}
 		glob::SW_INDEX => {
 			if smooth_dirs & glob::ADJ_S == glob::NONE {
 				if smooth_dirs & glob::ADJ_W == glob::NONE {
-					return glob::CONVEX
+					return glob::CONVEX;
 				}
-				return glob::HORIZONTAL
+				return glob::HORIZONTAL;
 			}
 			if smooth_dirs & glob::ADJ_W == glob::NONE {
-				return glob::VERTICAL
+				return glob::VERTICAL;
 			}
 			if smooth_dirs & glob::ADJ_SW == glob::NONE {
-				return glob::CONCAVE
+				return glob::CONCAVE;
 			}
 			glob::FLAT
-		},
+		}
 		glob::NW_INDEX => {
 			if smooth_dirs & glob::ADJ_N == glob::NONE {
 				if smooth_dirs & glob::ADJ_W == glob::NONE {
-					return glob::CONVEX
+					return glob::CONVEX;
 				}
-				return glob::HORIZONTAL
+				return glob::HORIZONTAL;
 			}
 			if smooth_dirs & glob::ADJ_W == glob::NONE {
-				return glob::VERTICAL
+				return glob::VERTICAL;
 			}
 			if smooth_dirs & glob::ADJ_NW == glob::NONE {
-				return glob::CONCAVE
+				return glob::CONCAVE;
 			}
 			glob::FLAT
-		},
-		_ => panic!("smooth_dir_to_corner_type called with {}", corner)
+		}
+		_ => panic!("smooth_dir_to_corner_type called with {}", corner),
 	}
 }
 

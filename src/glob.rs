@@ -19,7 +19,8 @@ pub const HORIZONTAL: u8 = 2;
 pub const VERTICAL: u8 = 3;
 pub const FLAT: u8 = 4;
 
-pub const CORNER_TYPES: [u8; 5] = [CONVEX, CONCAVE, HORIZONTAL, VERTICAL, FLAT];
+pub const CORNER_TYPES_CARDINAL: [u8; 4] = [CONVEX, CONCAVE, HORIZONTAL, VERTICAL];
+pub const CORNER_TYPES_DIAGONAL: [u8; 5] = [CONVEX, CONCAVE, HORIZONTAL, VERTICAL, FLAT];
 
 //Dirs
 pub const NONE: u8 = 0;

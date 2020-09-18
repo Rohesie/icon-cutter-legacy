@@ -2,12 +2,12 @@
 #v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#
 #The path of the file to open.
 #png support only for now.
-file_to_open: "./input.png"
+file_to_open: "./color-5-corners-input.png"
 
 #Name for the file to output and the icon-state prefixes.
 #Example output with "wall" as input: "wall.dmi" -> wall-0, wall-63, wall-137...
 #Keep this name different from the input one if you don't have it backed up to avoid losing the old file.
-output_name: "output"
+output_name: "color-6-corners-output"
 #^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
 
 
@@ -15,12 +15,12 @@ output_name: "output"
 #v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#
 #Possible icon coordinates here range from (0,0) in the top-left corner to (icon_size_x,icon_size_y) in the bottom-right one.
 icon_size_x: 32
-icon_size_y: 48
+icon_size_y: 32
 
 #Top-down sprites are centered in the middle: (16,16) for a 32x32 tile.
 #The same is not true in the Y axis for 3/4 walls in general, with the center being elevated by the perspective.
 center_x: 16
-center_y: 9
+center_y: 6
 #^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
 
 

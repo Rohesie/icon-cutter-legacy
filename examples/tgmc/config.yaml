@@ -2,12 +2,12 @@
 #v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#
 #The path of the file to open.
 #png support only for now.
-file_to_open: "./input.png"
+file_to_open: "./tgmc-input.png"
 
 #Name for the file to output and the icon-state prefixes.
 #Example output with "wall" as input: "wall.dmi" -> wall-0, wall-63, wall-137...
 #Keep this name different from the input one if you don't have it backed up to avoid losing the old file.
-output_name: "output"
+output_name: "tgmc-output"
 #^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
 
 
@@ -15,12 +15,12 @@ output_name: "output"
 #v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#
 #Possible icon coordinates here range from (0,0) in the top-left corner to (icon_size_x,icon_size_y) in the bottom-right one.
 icon_size_x: 32
-icon_size_y: 48
+icon_size_y: 32
 
 #Top-down sprites are centered in the middle: (16,16) for a 32x32 tile.
 #The same is not true in the Y axis for 3/4 walls in general, with the center being elevated by the perspective.
 center_x: 16
-center_y: 9
+center_y: 6
 #^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
 
 
@@ -32,11 +32,64 @@ center_y: 9
 #This means that a hypothetical rectangle with 3x2 sprites, 3 in the x-axis and 2 in the y, will range from coordinates (0,0) to (2,1).
 
 #v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#
+prefabs:
+#Purely convex icon, all corners are convex.
+ 0:
+  x: 0
+  y: 0
+ 1:
+  x: 1
+  y: 0
+ 2:
+  x: 2
+  y: 0
+#Purely vertical icon, all corners are vertical.
+ 3:
+  x: 3
+  y: 0
+ 4:
+  x: 0
+  y: 1
+ 5:
+  x: 1
+  y: 1
+ 6:
+  x: 2
+  y: 1
+ 7:
+  x: 3
+  y: 1
+ 8:
+  x: 0
+  y: 2
+ 9:
+  x: 1
+  y: 2
+ 10:
+  x: 2
+  y: 2
+ 11:
+  x: 3
+  y: 2
+#Purely horizontal icon, all corners are horizontal.
+ 12:
+  x: 0
+  y: 3
+ 13:
+  x: 1
+  y: 3
+ 14:
+  x: 2
+  y: 3
+ 15:
+  x: 3
+  y: 3
 
-##Standard corners.
-#These configs are necessary to be able to run the program.
+
+  ##Standard corners.
 
 #Convex corners.
+#Necessary to be able to run the program.
 se_convex_x: 0
 se_convex_y: 0
 nw_convex_x: 0
@@ -47,26 +100,29 @@ sw_convex_x: 0
 sw_convex_y: 0
 
 #Concave corners.
-se_concave_x: 1
-se_concave_y: 0
-nw_concave_x: 1
-nw_concave_y: 0
-ne_concave_x: 1
-ne_concave_y: 0
-sw_concave_x: 1
-sw_concave_y: 0
+#Necessary to be able to run the program.
+se_concave_x: 3
+se_concave_y: 3
+nw_concave_x: 3
+nw_concave_y: 3
+ne_concave_x: 3
+ne_concave_y: 3
+sw_concave_x: 3
+sw_concave_y: 3
 
 #Horizontal corners.
-se_horizontal_x: 2
-se_horizontal_y: 0
-nw_horizontal_x: 2
-nw_horizontal_y: 0
-ne_horizontal_x: 2
-ne_horizontal_y: 0
-sw_horizontal_x: 2
-sw_horizontal_y: 0
+#Necessary to be able to run the program.
+se_horizontal_x: 0
+se_horizontal_y: 3
+nw_horizontal_x: 0
+nw_horizontal_y: 3
+ne_horizontal_x: 0
+ne_horizontal_y: 3
+sw_horizontal_x: 0
+sw_horizontal_y: 3
 
 #Vertical corners.
+#Necessary to be able to run the program.
 se_vertical_x: 3
 se_vertical_y: 0
 nw_vertical_x: 3
@@ -75,16 +131,6 @@ ne_vertical_x: 3
 ne_vertical_y: 0
 sw_vertical_x: 3
 sw_vertical_y: 0
-
-#Flat corners.
-se_flat_x: 4
-se_flat_y: 0
-nw_flat_x: 4
-nw_flat_y: 0
-ne_flat_x: 4
-ne_flat_y: 0
-sw_flat_x: 4
-sw_flat_y: 0
 
 #^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#
 

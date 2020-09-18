@@ -27,7 +27,8 @@ pub struct PrefHolder {
 
 	pub produce_corners: bool,
 
-	pub prefabs: HashMap<u8, [u32; 2]>,
+	pub prefabs: Option<HashMap<u8, [u32; 2]>>,
+	pub tg_corners: Option<HashMap<u8, [u32; 4]>>,
 
 	pub dmi_version: String,
 
@@ -67,14 +68,16 @@ pub struct PrefHolder {
 	pub sw_vertical_x: u32,
 	pub sw_vertical_y: u32,
 
-	pub se_flat_x: u32,
-	pub se_flat_y: u32,
-	pub nw_flat_x: u32,
-	pub nw_flat_y: u32,
-	pub ne_flat_x: u32,
-	pub ne_flat_y: u32,
-	pub sw_flat_x: u32,
-	pub sw_flat_y: u32,
+	pub se_flat_x: Option<u32>,
+	pub se_flat_y: Option<u32>,
+	pub nw_flat_x: Option<u32>,
+	pub nw_flat_y: Option<u32>,
+	pub ne_flat_x: Option<u32>,
+	pub ne_flat_y: Option<u32>,
+	pub sw_flat_x: Option<u32>,
+	pub sw_flat_y: Option<u32>,
+
+	pub is_diagonal: bool,
 }
 
 impl PrefHolder {
@@ -84,13 +87,23 @@ impl PrefHolder {
 		Vec<Vec<image::DynamicImage>>,
 		HashMap<u8, image::DynamicImage>,
 	) {
-		let mut img = image::open(&self.file_to_open).unwrap();
+		let mut img = image::open(&self.file_to_open).expect("Failed to open input png file.");
 
 		//Index defined by glob::CORNER_DIRS
 		let mut corners: Vec<Vec<image::DynamicImage>> = vec![vec![], vec![], vec![], vec![]];
 
+		let corner_types: &[u8];
+		let corners_length;
+		if self.is_diagonal {
+			corner_types = &glob::CORNER_TYPES_DIAGONAL;
+			corners_length = glob::CORNER_TYPES_DIAGONAL.len() as u32;
+		} else {
+			corner_types = &glob::CORNER_TYPES_CARDINAL;
+			corners_length = glob::CORNER_TYPES_CARDINAL.len() as u32;
+		}
+
 		for corner_dir in glob::CORNER_DIRS.iter() {
-			for corner_type in glob::CORNER_TYPES.iter() {
+			for corner_type in corner_types.iter() {
 				let corner_params = self.get_corner_params(*corner_dir, *corner_type);
 				let corner_img = img.crop(
 					corner_params.0,
@@ -103,11 +116,12 @@ impl PrefHolder {
 		}
 
 		if self.produce_corners {
-			let x_length = glob::CORNER_TYPES.len() as u32;
-			let mut corners_image =
-				image::DynamicImage::new_rgba8(x_length * self.icon_size_x, 1 * self.icon_size_y);
+			let mut corners_image = image::DynamicImage::new_rgba8(
+				corners_length * self.icon_size_x,
+				1 * self.icon_size_y,
+			);
 			let mut index = 0;
-			for corner_type in glob::CORNER_TYPES.iter() {
+			for corner_type in corner_types.iter() {
 				imageops::replace(
 					&mut corners_image,
 					&corners[glob::NW_INDEX as usize][*corner_type as usize],
@@ -140,14 +154,37 @@ impl PrefHolder {
 		}
 
 		let mut prefabs: HashMap<u8, image::DynamicImage> = HashMap::new();
-		for (signature, location) in &self.prefabs {
-			let prefab_img = img.crop(
-				self.icon_size_x * location[0],
-				self.icon_size_y * location[1],
-				self.icon_size_x,
-				self.icon_size_y,
-			);
-			prefabs.insert(*signature, prefab_img);
+		if self.tg_corners != None {
+			for (signature, location) in self.tg_corners.as_ref().unwrap() {
+				let corner_img = img.crop(
+					self.icon_size_x * location[0],
+					self.icon_size_y * location[1],
+					self.icon_size_x,
+					self.icon_size_y,
+				);
+				let mut big_img = img.crop(
+					self.icon_size_x * location[2],
+					self.icon_size_y * location[3],
+					self.icon_size_x,
+					self.icon_size_y,
+				);
+				imageops::overlay(&mut big_img, &corner_img, 0, 0);
+				prefabs.insert(*signature, big_img);
+			}
+		}
+		if self.prefabs != None {
+			for (signature, location) in self.prefabs.as_ref().unwrap() {
+				if prefabs.contains_key(signature) {
+					continue; //Already handled by tg_corners config.
+				}
+				let prefab_img = img.crop(
+					self.icon_size_x * location[0],
+					self.icon_size_y * location[1],
+					self.icon_size_x,
+					self.icon_size_y,
+				);
+				prefabs.insert(*signature, prefab_img);
+			}
 		}
 
 		return (corners, prefabs);
@@ -180,8 +217,8 @@ impl PrefHolder {
 					self.north_step,
 				),
 				glob::FLAT => (
-					self.icon_size_x * self.ne_flat_x + self.east_start,
-					self.icon_size_y * self.ne_flat_y + self.north_start,
+					self.icon_size_x * self.ne_flat_x.unwrap() + self.east_start,
+					self.icon_size_y * self.ne_flat_y.unwrap() + self.north_start,
 					self.east_step,
 					self.north_step,
 				),
@@ -213,8 +250,8 @@ impl PrefHolder {
 					self.south_step,
 				),
 				glob::FLAT => (
-					self.icon_size_x * self.se_flat_x + self.east_start,
-					self.icon_size_y * self.se_flat_y + self.south_start,
+					self.icon_size_x * self.se_flat_x.unwrap() + self.east_start,
+					self.icon_size_y * self.se_flat_y.unwrap() + self.south_start,
 					self.east_step,
 					self.south_step,
 				),
@@ -246,8 +283,8 @@ impl PrefHolder {
 					self.south_step,
 				),
 				glob::FLAT => (
-					self.icon_size_x * self.sw_flat_x + self.west_start,
-					self.icon_size_y * self.sw_flat_y + self.south_start,
+					self.icon_size_x * self.sw_flat_x.unwrap() + self.west_start,
+					self.icon_size_y * self.sw_flat_y.unwrap() + self.south_start,
 					self.west_step,
 					self.south_step,
 				),
@@ -279,8 +316,8 @@ impl PrefHolder {
 					self.north_step,
 				),
 				glob::FLAT => (
-					self.icon_size_x * self.nw_flat_x + self.west_start,
-					self.icon_size_y * self.nw_flat_y + self.north_start,
+					self.icon_size_x * self.nw_flat_x.unwrap() + self.west_start,
+					self.icon_size_y * self.nw_flat_y.unwrap() + self.north_start,
 					self.west_step,
 					self.north_step,
 				),
@@ -291,6 +328,14 @@ impl PrefHolder {
 	}
 }
 
+pub fn read_some_u32_config(source: &yaml_rust::yaml::Yaml, index: &str) -> Option<u32> {
+	let config = &source[index];
+	if config.is_badvalue() {
+		return None;
+	}
+	Some(source[index].as_i64().unwrap() as u32)
+}
+
 pub fn load_configs() -> PrefHolder {
 	let mut file = File::open("./config.yaml").expect("Unable to open config file.");
 	let mut contents = String::new();
@@ -298,53 +343,95 @@ pub fn load_configs() -> PrefHolder {
 		.expect("Unable to read config file.");
 	let docs = YamlLoader::load_from_str(&contents).unwrap();
 	let doc = &docs[0];
-	let conf_icon_size_x = doc["icon_size_x"].as_i64().unwrap() as u32;
-	let conf_icon_size_y = doc["icon_size_y"].as_i64().unwrap() as u32;
-	let conf_center_x = doc["center_x"].as_i64().unwrap() as u32;
-	let conf_center_y = doc["center_y"].as_i64().unwrap() as u32;
 
-	let mut prefabs: HashMap<u8, [u32; 2]> = HashMap::new();
-	if !doc["prefabs"].is_badvalue() {
+	let icon_size_x = doc["icon_size_x"].as_i64().unwrap() as u32;
+	let icon_size_y = doc["icon_size_y"].as_i64().unwrap() as u32;
+	let center_x = doc["center_x"].as_i64().unwrap() as u32;
+	let center_y = doc["center_y"].as_i64().unwrap() as u32;
+
+	let prefabs;
+	if doc["prefabs"].is_badvalue() {
+		prefabs = None;
+	} else {
+		let mut prefab_map: HashMap<u8, [u32; 2]> = HashMap::new();
 		let yaml_prefabs = doc["prefabs"].as_hash().unwrap();
 		for (prefab_signature, x_and_y_hash) in yaml_prefabs.iter() {
 			let x_and_y = [
 				x_and_y_hash["x"].as_i64().unwrap() as u32,
 				x_and_y_hash["y"].as_i64().unwrap() as u32,
 			];
-			prefabs.insert(prefab_signature.as_i64().unwrap() as u8, x_and_y);
+			prefab_map.insert(prefab_signature.as_i64().unwrap() as u8, x_and_y);
 		}
+		prefabs = Some(prefab_map);
 	}
 
-	let conf_produce_corners;
-	if doc["produce_corners"].is_badvalue() {
-		conf_produce_corners = false;
+	let tg_corners;
+	if doc["tg_corners"].is_badvalue() {
+		tg_corners = None;
 	} else {
-		conf_produce_corners = doc["produce_corners"].as_bool().unwrap()
+		let mut tg_corners_map: HashMap<u8, [u32; 4]> = HashMap::new();
+		let yaml_tg_corners = doc["tg_corners"].as_hash().unwrap();
+		for (tg_corners_signature, corner_coords_hash) in yaml_tg_corners.iter() {
+			let corner_coords = [
+				corner_coords_hash["corner_x"].as_i64().unwrap() as u32,
+				corner_coords_hash["corner_y"].as_i64().unwrap() as u32,
+				corner_coords_hash["big_x"].as_i64().unwrap() as u32,
+				corner_coords_hash["big_y"].as_i64().unwrap() as u32,
+			];
+			tg_corners_map.insert(tg_corners_signature.as_i64().unwrap() as u8, corner_coords);
+		}
+		tg_corners = Some(tg_corners_map);
 	}
+
+	let produce_corners;
+	if doc["produce_corners"].is_badvalue() {
+		produce_corners = false;
+	} else {
+		produce_corners = doc["produce_corners"].as_bool().unwrap();
+	}
+
+	let se_flat_x = read_some_u32_config(&doc, "se_flat_x");
+	let se_flat_y = read_some_u32_config(&doc, "se_flat_y");
+	let nw_flat_x = read_some_u32_config(&doc, "nw_flat_x");
+	let nw_flat_y = read_some_u32_config(&doc, "nw_flat_y");
+	let ne_flat_x = read_some_u32_config(&doc, "ne_flat_x");
+	let ne_flat_y = read_some_u32_config(&doc, "ne_flat_y");
+	let sw_flat_x = read_some_u32_config(&doc, "sw_flat_x");
+	let sw_flat_y = read_some_u32_config(&doc, "sw_flat_y");
+
+	let is_diagonal = se_flat_y != None
+		&& se_flat_y != None
+		&& nw_flat_x != None
+		&& nw_flat_y != None
+		&& ne_flat_x != None
+		&& ne_flat_y != None
+		&& sw_flat_x != None
+		&& sw_flat_y != None;
 
 	return PrefHolder {
 		file_to_open: doc["file_to_open"].as_str().unwrap().to_string(),
 		output_name: doc["output_name"].as_str().unwrap().to_string(),
 
-		icon_size_x: conf_icon_size_x,
-		icon_size_y: conf_icon_size_y,
+		icon_size_x,
+		icon_size_y,
 
-		center_x: conf_center_x,
-		center_y: conf_center_y,
+		center_x,
+		center_y,
 
 		//Derivatives
 		west_start: glob::ORIGIN_X,
-		west_step: conf_center_x,
-		east_start: conf_center_x,
-		east_step: conf_icon_size_x - conf_center_x,
+		west_step: center_x,
+		east_start: center_x,
+		east_step: icon_size_x - center_x,
 		north_start: glob::ORIGIN_Y,
-		north_step: conf_center_y,
-		south_start: conf_center_y,
-		south_step: conf_icon_size_y - conf_center_y,
+		north_step: center_y,
+		south_start: center_y,
+		south_step: icon_size_y - center_y,
 
-		produce_corners: conf_produce_corners,
+		produce_corners,
 
-		prefabs: prefabs,
+		prefabs,
+		tg_corners,
 
 		dmi_version: doc["dmi_version"].as_str().unwrap().to_string(),
 
@@ -380,13 +467,14 @@ pub fn load_configs() -> PrefHolder {
 		ne_vertical_y: doc["ne_vertical_y"].as_i64().unwrap() as u32,
 		sw_vertical_x: doc["sw_vertical_x"].as_i64().unwrap() as u32,
 		sw_vertical_y: doc["sw_vertical_y"].as_i64().unwrap() as u32,
-		se_flat_x: doc["se_flat_x"].as_i64().unwrap() as u32,
-		se_flat_y: doc["se_flat_y"].as_i64().unwrap() as u32,
-		nw_flat_x: doc["nw_flat_x"].as_i64().unwrap() as u32,
-		nw_flat_y: doc["nw_flat_y"].as_i64().unwrap() as u32,
-		ne_flat_x: doc["ne_flat_x"].as_i64().unwrap() as u32,
-		ne_flat_y: doc["ne_flat_y"].as_i64().unwrap() as u32,
-		sw_flat_x: doc["sw_flat_x"].as_i64().unwrap() as u32,
-		sw_flat_y: doc["sw_flat_y"].as_i64().unwrap() as u32,
+		se_flat_x,
+		se_flat_y,
+		nw_flat_x,
+		nw_flat_y,
+		ne_flat_x,
+		ne_flat_y,
+		sw_flat_x,
+		sw_flat_y,
+		is_diagonal,
 	};
 }
