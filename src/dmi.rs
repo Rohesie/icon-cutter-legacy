@@ -1,8 +1,8 @@
 mod chunk;
 mod crc;
-mod error;
+pub mod error;
 
-use error::DmiError;
+use error::DmiReadError;
 use std::convert::TryFrom;
 use std::path::Path;
 use std::fs::File;
@@ -22,24 +22,38 @@ pub struct Dmi {
 }
 
 impl Dmi {
-	pub fn write_ztxt_chunk(&mut self, new_text: String) -> Result<bool, error::DmiError> {
+	pub fn write_ztxt_chunk(&mut self, new_text: String) -> Result<bool, std::io::Error> {
 		let return_val = self.chunk_ztxt.write_ztxt_chunk(new_text).unwrap();
 		Ok(return_val)
 	}
 
-	pub fn save(&mut self, path: String) -> Result<bool, error::DmiError> {
+	pub fn dmi_to_vec(&mut self) -> Result<Vec<u8>, error::DmiReadError> {
 		let mut dmi_bytes: Vec<u8> = vec![];
 
 		dmi_bytes.extend_from_slice(&self.header);
-		dmi_bytes = self.chunk_ihdr.write_to_vec(dmi_bytes).unwrap();
+		dmi_bytes = self.chunk_ihdr.write_to_vec(dmi_bytes)?;
 		/* //Let's drop the other chunks for now. None of them are necessary for dmi files.
 		for current_chunk in &mut self.other_chunks {
 			dmi_bytes = current_chunk.write_to_vec(dmi_bytes).unwrap();
 		}
 		*/
-		dmi_bytes = self.chunk_ztxt.write_to_vec(dmi_bytes).unwrap();
-		dmi_bytes = self.chunk_idat.write_to_vec(dmi_bytes).unwrap();
-		dmi_bytes = self.chunk_iend.write_to_vec(dmi_bytes).unwrap();
+		dmi_bytes = self.chunk_ztxt.write_to_vec(dmi_bytes)?;
+		dmi_bytes = self.chunk_idat.write_to_vec(dmi_bytes)?;
+		dmi_bytes = self.chunk_iend.write_to_vec(dmi_bytes)?;
+		Ok(dmi_bytes)
+	}
+
+	pub fn write(&mut self, path: &Path) -> Result<bool, error::DmiReadError> {
+		let dmi_bytes: Vec<u8> = self.dmi_to_vec()?;
+
+		let mut file = File::create(&path).map_err(|x| DmiReadError::Io(x))?;
+		file.write_all(&dmi_bytes).map_err(|x| DmiReadError::Io(x))?;
+
+		Ok(true)
+	}
+
+	pub fn save(&mut self, path: String) -> Result<bool, error::DmiReadError> {
+		let dmi_bytes: Vec<u8> = self.dmi_to_vec()?;
 
 		let path = Path::new(&path);
 		let mut file = File::create(&path).expect("Failed create dmi path");
@@ -49,11 +63,11 @@ impl Dmi {
 	}
 }
 
-pub fn dmi_from_vec(bytes_vec: &[u8]) -> Result<Dmi, error::DmiError> {
+pub fn dmi_from_vec(bytes_vec: &[u8]) -> Result<Dmi, error::DmiReadError> {
 	let header = <[u8; 8]>::try_from(&bytes_vec[0..8]).unwrap();
 
 	if header != MAGIC {
-		return Err(DmiError::MagicMismatch(header));
+		return Err(DmiReadError::MagicMismatch(header));
 	}
 
 	let mut index = 8; //Without the magic header.

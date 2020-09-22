@@ -1,4 +1,5 @@
 use super::glob;
+use std::collections::HashSet;
 
 pub fn smooth_dir_to_combination_key(smooth_dirs: u8, is_diagonal: bool) -> u8 {
 	let mut combination_key = glob::NONE;
@@ -112,4 +113,37 @@ pub fn corner_to_string(corner_dir: u8, corner_type: u8) -> String {
 		_ => panic!("corner_to_string called with corner_type {}", corner_type),
 	};
 	format!("{}-{}", dir_str, type_str)
+}
+
+///Takes everything that comes before the first dot in the string, discarding the rest.
+pub fn trim_path_after_first_dot(mut text: String) -> String {
+	let dot_offset = text.find('.').unwrap_or(text.len());
+	text.drain(dot_offset..); //.collect();
+	text
+}
+
+///Takes everything that comes after the last slash (or backslash) in the string, discarding the rest.
+pub fn trim_path_before_last_slash(mut text: String) -> String {
+	if text.is_empty() {
+		return text;
+	};
+	let is_slash = |c| c == '/' || c == '\\';
+	let slash_offset = match text.rfind(is_slash) {
+		Some(num) => num + 1,
+		None => 0,
+	};
+	text.drain(..slash_offset);
+	text
+}
+
+pub fn hash_set_lazy_add(hash: Option<HashSet<u8>>, value: u8) -> Option<HashSet<u8>> {
+	let new_hash;
+	if hash == None {
+		new_hash = Some(HashSet::new());
+	} else {
+		new_hash = hash;
+	};
+	let mut unwrapped = new_hash.unwrap();
+	unwrapped.insert(value);
+	Some(unwrapped)
 }

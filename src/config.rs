@@ -1,14 +1,18 @@
 use image::imageops;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::Path;
 use yaml_rust::YamlLoader;
 
 use super::glob;
+use super::helpers;
 
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PrefHolder {
-	pub file_to_open: String,
-	pub output_name: String,
+	pub file_to_open: Option<String>,
+	pub output_name: Option<String>,
 
 	pub icon_size_x: u32,
 	pub icon_size_y: u32,
@@ -29,6 +33,7 @@ pub struct PrefHolder {
 
 	pub prefabs: Option<HashMap<u8, [u32; 2]>>,
 	pub tg_corners: Option<HashMap<u8, [u32; 4]>>,
+	pub prefab_keys: Option<HashSet<u8>>,
 
 	pub dmi_version: String,
 
@@ -83,11 +88,16 @@ pub struct PrefHolder {
 impl PrefHolder {
 	pub fn build_corners_and_prefabs(
 		&self,
+		input: std::io::Cursor<Vec<u8>>,
+		file_name: &str,
 	) -> (
 		Vec<Vec<image::DynamicImage>>,
 		HashMap<u8, image::DynamicImage>,
 	) {
-		let mut img = image::open(&self.file_to_open).expect("Failed to open input png file.");
+		let mut img = image::load(input, image::ImageFormat::Png).expect(
+			"Failed to load the file as a png image. Make sure this is a valid .png or .dmi file.",
+		);
+		//let mut img = image::open(&self.file_to_open).expect("Failed to open input png file.");
 
 		//Index defined by glob::CORNER_DIRS
 		let mut corners: Vec<Vec<image::DynamicImage>> = vec![vec![], vec![], vec![], vec![]];
@@ -148,8 +158,12 @@ impl PrefHolder {
 				);
 				index += 1;
 			}
+			let output_name = match &self.output_name {
+				Some(x) => format!("{}-output", x),
+				None => format!("{}-output", file_name),
+			};
 			corners_image
-				.save(format!("{}-corners.png", &self.output_name))
+				.save(format!("{}-corners.png", output_name))
 				.unwrap();
 		}
 
@@ -336,18 +350,38 @@ pub fn read_some_u32_config(source: &yaml_rust::yaml::Yaml, index: &str) -> Opti
 	Some(source[index].as_i64().unwrap() as u32)
 }
 
-pub fn load_configs() -> PrefHolder {
-	let mut file = File::open("./config.yaml").expect("Unable to open config file.");
+pub fn read_some_string_config(source: &yaml_rust::yaml::Yaml, index: &str) -> Option<String> {
+	let config = &source[index];
+	if config.is_badvalue() {
+		return None;
+	}
+	Some(source[index].as_str().unwrap().to_string())
+}
+
+pub fn load_configs(caller_path: String) -> Result<PrefHolder, std::io::Error> {
+	let config_path;
+	let last_slash = caller_path.rfind(|c| c == '/' || c == '\\');
+	if last_slash != None {
+		config_path = caller_path[..last_slash.unwrap()].to_string();
+	} else {
+		config_path = ".".to_string();
+	}
+	let path = Path::new(&config_path).join("config.yaml");
+	let mut file = File::open(path)?; //.expect("Unable to open config file.")
 	let mut contents = String::new();
-	file.read_to_string(&mut contents)
-		.expect("Unable to read config file.");
+	file.read_to_string(&mut contents)?; //.expect("Unable to read config file.")
 	let docs = YamlLoader::load_from_str(&contents).unwrap();
 	let doc = &docs[0];
+
+	let file_to_open = read_some_string_config(&doc, "file_to_open");
+	let output_name = read_some_string_config(&doc, "output_name");
 
 	let icon_size_x = doc["icon_size_x"].as_i64().unwrap() as u32;
 	let icon_size_y = doc["icon_size_y"].as_i64().unwrap() as u32;
 	let center_x = doc["center_x"].as_i64().unwrap() as u32;
 	let center_y = doc["center_y"].as_i64().unwrap() as u32;
+
+	let mut prefab_keys: Option<HashSet<u8>> = None;
 
 	let prefabs;
 	if doc["prefabs"].is_badvalue() {
@@ -360,7 +394,9 @@ pub fn load_configs() -> PrefHolder {
 				x_and_y_hash["x"].as_i64().unwrap() as u32,
 				x_and_y_hash["y"].as_i64().unwrap() as u32,
 			];
-			prefab_map.insert(prefab_signature.as_i64().unwrap() as u8, x_and_y);
+			let signature = prefab_signature.as_i64().unwrap() as u8;
+			prefab_map.insert(signature, x_and_y);
+			prefab_keys = helpers::hash_set_lazy_add(prefab_keys, signature);
 		}
 		prefabs = Some(prefab_map);
 	}
@@ -378,7 +414,9 @@ pub fn load_configs() -> PrefHolder {
 				corner_coords_hash["big_x"].as_i64().unwrap() as u32,
 				corner_coords_hash["big_y"].as_i64().unwrap() as u32,
 			];
-			tg_corners_map.insert(tg_corners_signature.as_i64().unwrap() as u8, corner_coords);
+			let signature = tg_corners_signature.as_i64().unwrap() as u8;
+			tg_corners_map.insert(signature, corner_coords);
+			prefab_keys = helpers::hash_set_lazy_add(prefab_keys, signature);
 		}
 		tg_corners = Some(tg_corners_map);
 	}
@@ -408,9 +446,9 @@ pub fn load_configs() -> PrefHolder {
 		&& sw_flat_x != None
 		&& sw_flat_y != None;
 
-	return PrefHolder {
-		file_to_open: doc["file_to_open"].as_str().unwrap().to_string(),
-		output_name: doc["output_name"].as_str().unwrap().to_string(),
+	return Ok(PrefHolder {
+		file_to_open,
+		output_name,
 
 		icon_size_x,
 		icon_size_y,
@@ -430,6 +468,7 @@ pub fn load_configs() -> PrefHolder {
 
 		produce_corners,
 
+		prefab_keys,
 		prefabs,
 		tg_corners,
 
@@ -476,5 +515,5 @@ pub fn load_configs() -> PrefHolder {
 		sw_flat_x,
 		sw_flat_y,
 		is_diagonal,
-	};
+	});
 }
