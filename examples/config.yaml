@@ -28,7 +28,7 @@
 ## ICON CONFIGS ##
 ##v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v##
 ## Possible icon coordinates here range from (0,0) in the top-left corner to (icon_size_x,icon_size_y) in the bottom-right one.
-## Optional, default to 32.
+## Optional, defaults to 32.
 
 #icon_size_x: 32
 #icon_size_y: 32
@@ -36,10 +36,57 @@
 
 ## Top-down sprites are centered in the middle: (16,16) for a 32x32 tile.
 ## The same is not true in the Y axis for 3/4 walls in general, with the center being elevated by the perspective.
-## Optional, default to 16.
+## Optional, defaults to 16.
 
 #center_x: 16
 #center_y: 16
+
+
+##v#v#v##
+## While the default behavior is to cut the whole of the sprite into four corners, one can configure custom ranges for smaller corners.
+## The values are in pixel cordinates, in the X axis for the west-east components and on the Y axis for the north-south ones.
+## All of them are optional
+
+## Defaults to 0.
+
+#west_start: 0
+
+
+## Defaults to 0.
+
+#north_start: 0
+
+
+## Defaults to center_x.
+
+#west_end = 16
+
+
+# Defaults to center_y.
+
+#north_end = 16
+
+
+# Defaults to center_x.
+
+#east_start = 16
+
+
+# Defaults to center_y.
+
+#south_start = 16
+
+
+## Defaults to 32.
+
+#east_end = 32
+
+
+## Defaults to 32.
+
+#south_end = 32
+
+##^#^#^##
 
 
 ## For animated icons, how many frames each icon_state has. If unset it will default to 1 (one), denoting a non-animated image.

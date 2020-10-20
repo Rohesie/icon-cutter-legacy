@@ -127,7 +127,7 @@ fn build_walls(
 					output_name = format!("output({})", icons_built + 1)
 				};
 			} else {
-				output_name = helpers::trim_path_before_last_slash(file_string_path.clone());
+				output_name = format!("{}-output", helpers::trim_path_before_last_slash(file_string_path.clone()));
 			};
 		}
 	};
