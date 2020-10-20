@@ -3,6 +3,7 @@
 //Internal modules.
 mod config;
 mod dmi;
+mod error;
 mod glob;
 mod helpers;
 
@@ -10,7 +11,6 @@ mod helpers;
 use image::imageops;
 
 //To export the string dmi metadata signature.
-use dmi::error::DmiReadError;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -32,20 +32,27 @@ fn main() {
 		}
 	};
 
+	match &prefs.file_to_open {
+		Some(thing) => args.push(thing.clone()),
+		None => (),
+	};
+
+	let mut icons_built = 0;
 	for image_path_string in args.iter() {
+		//println!("Debug: image_path_string: {}", image_path_string);
 		let path = Path::new(&image_path_string);
 		let mut file;
 		match File::open(&path) {
 			Ok(f) => file = f,
 			Err(e) => {
-				println!("{:?}", e);
+				println!("Wrong file path: {:?}", e);
 				dont_disappear::any_key_to_continue::default();
 				return;
 			}
-		}
+		};
 		let mut contents = Vec::new();
 		if let Err(e) = file.read_to_end(&mut contents) {
-			println!("{:?}", e);
+			println!("Unable to read file: {:?}", e);
 			dont_disappear::any_key_to_continue::default();
 			return;
 		};
@@ -58,12 +65,13 @@ fn main() {
 			.unwrap_or(image_path_string.len());
 		formatted_file_name = formatted_file_name.drain(..dot_offset).collect(); //Here we remove everything after the dot. Whether .dmi or .png is the same for us.
 
-		let building_return = build_walls(cursor, formatted_file_name, &prefs);
+		let building_return = build_walls(cursor, formatted_file_name, &prefs, icons_built);
 		match building_return {
 			Ok(_x) => println!("Wall built successfully."),
 			Err(x) => println!("Error building wall: {}", x),
-		}
+		};
 		dont_disappear::any_key_to_continue::default();
+		icons_built += 1;
 	}
 
 	println!("Program finished.");
@@ -74,21 +82,23 @@ fn build_walls(
 	input: std::io::Cursor<Vec<u8>>,
 	file_string_path: String,
 	prefs: &config::PrefHolder,
-) -> Result<bool, DmiReadError> {
-	let corners_and_prefabs = prefs.build_corners_and_prefabs(input, &*file_string_path);
+	icons_built: u32,
+) -> Result<bool, error::ReadError> {
+	let corners_and_prefabs = prefs.build_corners_and_prefabs(input, &*file_string_path)?;
 	let corners = corners_and_prefabs.0;
 	let mounted_prefabs = corners_and_prefabs.1;
-	let prefab_keys = &prefs.prefab_keys;
 
-	let possible_walls = prepare_walls(prefs.is_diagonal);
+	let possible_icon_states = prepare_icon_states(prefs.is_diagonal);
 
-	let number_of_walls = possible_walls.len() as u32;
+	let number_of_icon_states = possible_icon_states.len() as u32;
 	assert!(
-		number_of_walls > 0,
-		"prepare_walls() produced {} results",
-		number_of_walls
+		number_of_icon_states > 0,
+		"prepare_icon_states() produced {} results",
+		number_of_icon_states
 	);
-	let max_index = (possible_walls.len() as f64).sqrt().ceil() as u32;
+	let max_index = ((possible_icon_states.len() as u32 * prefs.frames_per_state) as f64)
+		.sqrt()
+		.ceil() as u32;
 
 	let width = max_index * prefs.icon_size_x;
 	let height = max_index * prefs.icon_size_y;
@@ -100,101 +110,169 @@ fn build_walls(
 	let mut index_x = 0;
 	let mut index_y = 0;
 
-	let output_name = match &prefs.output_name {
-		Some(thing) => thing.clone(),
+	let output_name;
+	match &prefs.output_name {
+		Some(thing) => {
+			if icons_built == 0 {
+				output_name = format!("{}", &thing)
+			} else {
+				output_name = format!("{}({})", &thing, icons_built + 1)
+			};
+		}
 		None => {
-			let mut file_name = file_string_path.clone();
-			file_name = helpers::trim_path_before_last_slash(file_name);
-			file_name
+			if file_string_path.len() == 0 {
+				if icons_built == 0 {
+					output_name = "output".to_string()
+				} else {
+					output_name = format!("output({})", icons_built + 1)
+				};
+			} else {
+				output_name = helpers::trim_path_before_last_slash(file_string_path.clone());
+			};
 		}
 	};
-	//let output_name = prefs.output_name.to_string();
-	for wall_signature in possible_walls.iter() {
-		let has_prefab = match prefab_keys {
-			None => false,
-			Some(map) => {
-				if map.contains(wall_signature) {
-					true
+	let icon_state_name;
+	icon_state_name = match &prefs.base_icon_state {
+		Some(thing) => thing.clone(),
+		None => "icon".to_string(),
+	};
+
+	for wall_signature in possible_icon_states.iter() {
+		if mounted_prefabs.contains_key(wall_signature) {
+			for frame in 0..prefs.frames_per_state {
+				imageops::replace(
+					&mut new_wall,
+					&mounted_prefabs[wall_signature][frame as usize],
+					(index_x * prefs.icon_size_x) + prefs.west_start,
+					(index_y * prefs.icon_size_y) + prefs.north_start,
+				);
+				if index_x > max_index - 2 {
+					index_x = 0;
+					index_y += 1;
 				} else {
-					false
-				}
+					index_x += 1;
+				};
+			}
+		} else {
+			for frame in 0..prefs.frames_per_state {
+				let frame_img = &corners
+					.get(&glob::NW_INDEX)
+					.unwrap()
+					.get(&helpers::smooth_dir_to_corner_type(
+						glob::NW_INDEX,
+						*wall_signature,
+					))
+					.unwrap()[frame as usize];
+				imageops::overlay(
+					&mut new_wall,
+					frame_img,
+					(index_x * prefs.icon_size_x) + prefs.west_start,
+					(index_y * prefs.icon_size_y) + prefs.north_start,
+				);
+				let frame_img = &corners
+					.get(&glob::NE_INDEX)
+					.unwrap()
+					.get(&helpers::smooth_dir_to_corner_type(
+						glob::NE_INDEX,
+						*wall_signature,
+					))
+					.unwrap()[frame as usize];
+				imageops::overlay(
+					&mut new_wall,
+					frame_img,
+					(index_x * prefs.icon_size_x) + prefs.east_start,
+					(index_y * prefs.icon_size_y) + prefs.north_start,
+				);
+				let frame_img = &corners
+					.get(&glob::SE_INDEX)
+					.unwrap()
+					.get(&helpers::smooth_dir_to_corner_type(
+						glob::SE_INDEX,
+						*wall_signature,
+					))
+					.unwrap()[frame as usize];
+				imageops::overlay(
+					&mut new_wall,
+					frame_img,
+					(index_x * prefs.icon_size_x) + prefs.east_start,
+					(index_y * prefs.icon_size_y) + prefs.south_start,
+				);
+				let frame_img = &corners
+					.get(&glob::SW_INDEX)
+					.unwrap()
+					.get(&helpers::smooth_dir_to_corner_type(
+						glob::SW_INDEX,
+						*wall_signature,
+					))
+					.unwrap()[frame as usize];
+				imageops::overlay(
+					&mut new_wall,
+					frame_img,
+					(index_x * prefs.icon_size_x) + prefs.west_start,
+					(index_y * prefs.icon_size_y) + prefs.south_start,
+				);
+				if index_x > max_index - 2 {
+					index_x = 0;
+					index_y += 1;
+				} else {
+					index_x += 1;
+				};
 			}
 		};
-		if has_prefab {
-			imageops::replace(
-				&mut new_wall,
-				&mounted_prefabs[wall_signature],
-				(index_x * prefs.icon_size_x) + prefs.west_start,
-				(index_y * prefs.icon_size_y) + prefs.north_start,
+		let string_signature;
+		if prefs.frames_per_state == 1 {
+			string_signature = format!(
+				"state = \"{}-{}\"\n\tdirs = 1\n\tframes = 1\n",
+				&icon_state_name, wall_signature
 			)
 		} else {
-			imageops::overlay(
-				&mut new_wall,
-				&corners[glob::NW_INDEX as usize]
-					[helpers::smooth_dir_to_corner_type(glob::NW_INDEX, *wall_signature) as usize],
-				(index_x * prefs.icon_size_x) + prefs.west_start,
-				(index_y * prefs.icon_size_y) + prefs.north_start,
-			);
-			imageops::overlay(
-				&mut new_wall,
-				&corners[glob::NE_INDEX as usize]
-					[helpers::smooth_dir_to_corner_type(glob::NE_INDEX, *wall_signature) as usize],
-				(index_x * prefs.icon_size_x) + prefs.east_start,
-				(index_y * prefs.icon_size_y) + prefs.north_start,
-			);
-			imageops::overlay(
-				&mut new_wall,
-				&corners[glob::SE_INDEX as usize]
-					[helpers::smooth_dir_to_corner_type(glob::SE_INDEX, *wall_signature) as usize],
-				(index_x * prefs.icon_size_x) + prefs.east_start,
-				(index_y * prefs.icon_size_y) + prefs.south_start,
-			);
-			imageops::overlay(
-				&mut new_wall,
-				&corners[glob::SW_INDEX as usize]
-					[helpers::smooth_dir_to_corner_type(glob::SW_INDEX, *wall_signature) as usize],
-				(index_x * prefs.icon_size_x) + prefs.west_start,
-				(index_y * prefs.icon_size_y) + prefs.south_start,
-			);
-		}
-		let string_signature = format!(
-			"state = \"{}-{}\"\n\tdirs = 1\n\tframes = 1\n",
-			&output_name, wall_signature
-		);
+			let delay_vec = match &prefs.delay {
+				Some(thing) => thing,
+				None => {return Err(error::ReadError::Generic("Error while trying to read the delay preference, no value found. This shouldn't happen.".to_string()))}
+				};
+			let mut delay_signature = vec![];
+			for delay_value in delay_vec.iter() {
+				delay_signature.push(delay_value.to_string())
+			}
+			let delay_signature = delay_signature.join(",");
+			string_signature = format!(
+				"state = \"{}-{}\"\n\tdirs = 1\n\tframes = {}\n\tdelay = {}\n",
+				&icon_state_name, wall_signature, prefs.frames_per_state, delay_signature
+			)
+		};
 		dmi_signature.push_str(&string_signature);
-		if index_x > max_index - 2 {
-			index_x = 0;
-			index_y += 1;
-		} else {
-			index_x += 1;
-		}
 	}
 	dmi_signature += "# END DMI\n";
 
 	let mut image_bytes: Vec<u8> = vec![];
 	new_wall
 		.write_to(&mut image_bytes, image::ImageOutputFormat::Png)
-		.map_err(|x| DmiReadError::Image(x))?;
+		.map_err(|x| error::ReadError::Image(x))?;
 
 	let mut dmi = dmi::dmi_from_vec(&image_bytes)?;
-	dmi.write_ztxt_chunk(dmi_signature)
-		.map_err(|x| DmiReadError::Io(x))?;
+	dmi.write_ztxt_chunk(dmi_signature)?;
 
-	let path_name = format!("{}-output.dmi", file_string_path);
-	let dmi_path = Path::new(&path_name);
+	let output_name = format!("{}.dmi", output_name);
+	let dmi_path = Path::new(&output_name);
 	dmi.write(dmi_path)?;
 
-	println!("Number of wall sprites produced: {}", number_of_walls);
+	println!(
+		"{} icon states produced, with {} frames each, for a total of {} frames.",
+		number_of_icon_states,
+		prefs.frames_per_state,
+		number_of_icon_states * prefs.frames_per_state
+	);
 	Ok(true)
 }
 
-fn prepare_walls(is_diagonal: bool) -> Vec<u8> {
+fn prepare_icon_states(is_diagonal: bool) -> Vec<u8> {
 	let mut wall_variations: Vec<u8> = vec![];
 	for smooth_dirs in glob::NONE..=glob::ADJ_ALL {
 		let combination_key = helpers::smooth_dir_to_combination_key(smooth_dirs, is_diagonal);
-		if !wall_variations.contains(&combination_key) {
-			wall_variations.push(combination_key);
-		}
+		if wall_variations.contains(&combination_key) {
+			continue;
+		};
+		wall_variations.push(combination_key);
 	}
 	wall_variations.sort();
 	return wall_variations;

@@ -1,5 +1,4 @@
-
-use super::error::DmiReadError;
+use super::super::error::ReadError;
 use super::crc;
 use deflate;
 
@@ -13,7 +12,7 @@ pub struct Chunk {
 
 impl Chunk {
 	/// Reads a PNG chunk from a vector buffer.
-	pub fn read_from_vec(bytes_vec: &[u8], index: usize) -> Result<(Chunk, usize), DmiReadError> {
+	pub fn read_from_vec(bytes_vec: &[u8], index: usize) -> Result<(Chunk, usize), ReadError> {
 		let chunk_length_array = [
 			bytes_vec[index],
 			bytes_vec[index + 1],
@@ -32,7 +31,7 @@ impl Chunk {
 			.iter()
 			.all(|c| (0x41 <= *c && *c <= 0x5A) || (0x61 <= *c && *c <= 0x7A))
 		{
-			return Err(DmiReadError::InvalidChunkType(chunk_type));
+			return Err(ReadError::InvalidChunkType(chunk_type));
 		}
 		new_index += 4;
 		let chunk_data: Vec<u8> = bytes_vec[new_index..(new_index + chunk_length)]
@@ -49,7 +48,7 @@ impl Chunk {
 		let stated_crc = u32::from_be_bytes(crc_array);
 		let cacluated_crc = crc::calculate_crc(chunk_type.iter().chain(chunk_data.iter()));
 		if stated_crc != cacluated_crc {
-			return Err(DmiReadError::CrcMismatch {
+			return Err(ReadError::CrcMismatch {
 				stated: stated_crc,
 				calculated: cacluated_crc,
 			});
@@ -67,7 +66,7 @@ impl Chunk {
 	}
 
 	/// Writes a PNG chunk to a vector buffer.
-	pub fn write_to_vec(&mut self, mut bytes_vec: Vec<u8>) -> Result<Vec<u8>, DmiReadError> {
+	pub fn write_to_vec(&mut self, mut bytes_vec: Vec<u8>) -> Result<Vec<u8>, ReadError> {
 		bytes_vec.extend_from_slice(&self.length);
 		bytes_vec.extend_from_slice(&self.chunk_type);
 		bytes_vec.extend_from_slice(&self.data);
@@ -75,13 +74,13 @@ impl Chunk {
 		Ok(bytes_vec)
 	}
 
-	pub fn write_ztxt_chunk(&mut self, new_text: String) -> Result<bool, DmiReadError> {
+	pub fn write_ztxt_chunk(&mut self, new_text: String) -> Result<bool, ReadError> {
 		let mut data: Vec<u8> = vec![];
 
 		let keyword = "Description".as_bytes();
 		data.extend_from_slice(keyword);
 
-		let compression_method: [u8;2] = [0,0];
+		let compression_method: [u8; 2] = [0, 0];
 		data.extend_from_slice(&compression_method);
 
 		let dmi_data = new_text;

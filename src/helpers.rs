@@ -96,25 +96,6 @@ pub fn smooth_dir_to_corner_type(corner: u8, smooth_dirs: u8) -> u8 {
 	}
 }
 
-pub fn corner_to_string(corner_dir: u8, corner_type: u8) -> String {
-	let dir_str = match corner_dir {
-		glob::NE_INDEX => "ne",
-		glob::SE_INDEX => "se",
-		glob::SW_INDEX => "sw",
-		glob::NW_INDEX => "nw",
-		_ => panic!("corner_to_string called with corner_dir {}", corner_dir),
-	};
-	let type_str = match corner_type {
-		glob::CONVEX => "conv",
-		glob::CONCAVE => "conc",
-		glob::HORIZONTAL => "hori",
-		glob::VERTICAL => "vert",
-		glob::FLAT => "flat",
-		_ => panic!("corner_to_string called with corner_type {}", corner_type),
-	};
-	format!("{}-{}", dir_str, type_str)
-}
-
 ///Takes everything that comes before the first dot in the string, discarding the rest.
 pub fn trim_path_after_first_dot(mut text: String) -> String {
 	let dot_offset = text.find('.').unwrap_or(text.len());

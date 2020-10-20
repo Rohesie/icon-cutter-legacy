@@ -1,0 +1,159 @@
+## PATH CONFIGS ##
+##v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v##
+
+
+## The path of the file to open.
+## Optional, you can opt to leave it out and click and drag the file into the binary to execute it instead.
+
+#file_to_open: "./input.dmi"
+
+
+## Name for the file to output.
+## Optional, if unset the output name will be the same as the input file's, with "-output" appended to it, ending in ".dmi"
+## Example output with "wall" as input: "wall.dmi"
+
+#output_name: "output"
+
+
+##N ame for the icon-state prefixes.
+## Optional, if unset it will default to "icon"
+## Example output with "wall" as input: wall-0, wall-63, wall-137...
+
+#base_icon_state: "icon"
+
+
+##^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^##
+
+
+## ICON CONFIGS ##
+##v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v##
+## Possible icon coordinates here range from (0,0) in the top-left corner to (icon_size_x,icon_size_y) in the bottom-right one.
+## Optional, default to 32.
+
+#icon_size_x: 32
+#icon_size_y: 32
+
+
+## Top-down sprites are centered in the middle: (16,16) for a 32x32 tile.
+## The same is not true in the Y axis for 3/4 walls in general, with the center being elevated by the perspective.
+## Optional, default to 16.
+
+#center_x: 16
+#center_y: 16
+
+
+## For animated icons, how many frames each icon_state has. If unset it will default to 1 (one), denoting a non-animated image.
+
+#frames_per_state: 2
+
+
+## If frames_per_state is defined and different than 1 (one), then this variable is used.
+## It is a list of the delays in the animation of each frame.
+## If the number of entires is lower than the number of frames, it will start reading from the beginning and repeating the pattern.
+## This makes a single entry valid, for example, but then all frames will have that same delay.
+## If the number of entries is defined and higher than the number of frames, the program will fail with the relevant error code.
+## Optional, defaults all values to 1
+
+#delay:
+# - 20
+# - 20
+
+
+##^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^##
+
+
+## ICON STATE CONFIGS ##
+## These values are in icon-state steps as they would appear in the dmi file.
+## The first icon is in the position 0 (zero), and subsequent ones increase that value by one.
+## If frames_per_state is defined and different from 1, then the position indicates the location of the first frame, and the program will read the following ones in sequence.
+##v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v##
+
+
+### Prefab icons.
+## These values are for specific junctions the icon already exists for, or you just don't want the corner-building method used.
+## The notation is junction signature: position
+## Optional, defaults to using the corners for every signature. If defined, signature will be skiped in favor of the prefab.
+
+#prefabs:
+# 9: 22
+# 5: 25
+
+
+## Prefab overlays.
+## Optional, but for every overlay signature entry, there must be a prefabs entry with a matching signature, refering to the image to be overlaid.
+## Multiple positions may be selected in the list, each denoting one image (or set of frames) to be overlaid over the prefab, in the listed order.
+
+#prefab_overlays:
+# 9:
+#  - 20
+# 5:
+#  - 23
+
+
+### Standard corners.
+
+
+## Convex corners.
+## Necessary to be able to run the program.
+nw_convex: 0
+ne_convex: 1
+sw_convex: 2
+se_convex: 3
+
+
+##Vertical corners.
+##Necessary to be able to run the program.
+nw_vertical: 4
+ne_vertical: 5
+sw_vertical: 6
+se_vertical: 7
+
+
+##Horizontal corners.
+##Necessary to be able to run the program.
+nw_horizontal: 8
+ne_horizontal: 9
+sw_horizontal: 10
+se_horizontal: 11
+
+
+##Concave corners.
+##Necessary to be able to run the program.
+nw_concave: 12
+ne_concave: 13
+sw_concave: 14
+se_concave: 15
+
+
+##Flat corners.
+##Optional. Will produce 16 wall variants without these, and 48 with them.
+#nw_flat: 16
+#ne_flat: 17
+#sw_flat: 18
+#se_flat: 19
+
+
+##^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^##
+
+
+## DEBUG CONFIGS ##
+##v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v##
+##If enabled, it will produce an image with every possible corner type variant (convex, concave, horizontal, vertical and flat).
+##Useful for debugging purposes.
+##Optional, defaults to false.
+
+#produce_corners: false
+
+
+##^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^##
+
+
+## VERSION CONFIGS ##
+##v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v##
+##This is a dmi version compatibility config. Do not touch it unless you know what you are doing, for you risk getting a corrupted file as a result.
+##Optional, defaults to "4.0".
+
+#dmi_version: "4.0"
+
+
+##^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^##

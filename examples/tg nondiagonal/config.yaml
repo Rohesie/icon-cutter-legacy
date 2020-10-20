@@ -1,115 +1,28 @@
-## PATH CONFIGS ##
-##v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v##
-##The path of the file to open.
+## Uncomment by removing the '#' character in front of them to enable these ##
+#output_name: "output"
+#base_icon_state: "icon"
 
-#file_to_open: "./tg-nondiagonal-input.png"
+nw_convex: 0
+ne_convex: 1
+sw_convex: 2
+se_convex: 3
 
-##Name for the file to output and the icon-state prefixes.
-##Example output with "wall" as input: "wall.dmi" -> wall-0, wall-63, wall-137...
+nw_vertical: 4
+ne_vertical: 5
+sw_vertical: 6
+se_vertical: 7
 
-#output_name: "tg-nondiagonal-output"
+nw_horizontal: 8
+ne_horizontal: 9
+sw_horizontal: 10
+se_horizontal: 11
 
-##^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^##
+nw_concave: 12
+ne_concave: 13
+sw_concave: 14
+se_concave: 15
 
-
-## ICON CONFIGS ##
-##v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v##
-##Possible icon coordinates here range from (0,0) in the top-left corner to (icon_size_x,icon_size_y) in the bottom-right one.
-
-icon_size_x: 32
-icon_size_y: 32
-
-##Top-down sprites are centered in the middle: (16,16) for a 32x32 tile.
-##The same is not true in the Y axis for 3/4 walls in general, with the center being elevated by the perspective.
-
-center_x: 16
-center_y: 16
-
-##^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^##
-
-
-## COORDINATE CONFIGS ##
-##These coordinates are in icon-sized steps, according to the input image.
-##The top-left icon is in coordinates (0,0).
-##The maximum valid x value is ((pixel-width / icon_size_x) - 1).
-##The maximum valid y value is ((pixel-height / icon_size_y) - 1).
-##This means that a hypothetical rectangle with 3x2 sprites, 3 in the x-axis and 2 in the y, will range from coordinates (0,0) to (2,1).
-
-##v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v##
-###Standard corners.
-
-##Convex corners.
-##Necessary to be able to run the program.
-nw_convex_x: 0
-nw_convex_y: 0
-ne_convex_x: 1
-ne_convex_y: 0
-sw_convex_x: 2
-sw_convex_y: 0
-se_convex_x: 3
-se_convex_y: 0
-
-##Vertical corners.
-##Necessary to be able to run the program.
-nw_vertical_x: 4
-nw_vertical_y: 0
-ne_vertical_x: 0
-ne_vertical_y: 1
-sw_vertical_x: 1
-sw_vertical_y: 1
-se_vertical_x: 2
-se_vertical_y: 1
-
-##Horizontal corners.
-##Necessary to be able to run the program.
-nw_horizontal_x: 3
-nw_horizontal_y: 1
-ne_horizontal_x: 4
-ne_horizontal_y: 1
-sw_horizontal_x: 0
-sw_horizontal_y: 2
-se_horizontal_x: 1
-se_horizontal_y: 2
-
-##Concave corners.
-##Necessary to be able to run the program.
-nw_concave_x: 2
-nw_concave_y: 2
-ne_concave_x: 3
-ne_concave_y: 2
-sw_concave_x: 4
-sw_concave_y: 2
-se_concave_x: 0
-se_concave_y: 3
-
-##Flat corners.
-##Optional.
-nw_flat_x: 1
-nw_flat_y: 3
-ne_flat_x: 2
-ne_flat_y: 3
-sw_flat_x: 3
-sw_flat_y: 3
-se_flat_x: 4
-se_flat_y: 3
-
-##^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^##
-
-
-## DEBUG CONFIGS ##
-##v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v##
-##If enabled, it will produce an image with every possible corner type variant (convex, concave, horizontal, vertical and flat).
-##Useful for debugging purposes.
-##This config is optional.
-
-produce_corners: false
-
-##^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^##
-
-## VERSION CONFIGS ##
-##v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v#v##
-##These config is necessary to be able to run the program.
-
-dmi_version: "4.0"
-
-##^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^#^##
+nw_flat: 16
+ne_flat: 17
+sw_flat: 18
+se_flat: 19
