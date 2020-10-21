@@ -1,5 +1,5 @@
 [package]
-name = "walls"
+name = "icon-cutter"
 version = "0.1.0"
 authors = ["L <rohesie@gmail.com>"]
 edition = "2018"

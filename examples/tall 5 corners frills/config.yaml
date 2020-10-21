@@ -1,8 +1,16 @@
 ## Uncomment by removing the '#' character in front of them to enable these ##
-#output_name: "output"
-#base_icon_state: "icon"
+#output_name: "frill"
+#base_icon_state: "frill"
 
-north_end: 6
+icon_size_y: 48
+
+north_end: 16
+
+north_end: 16
+south_start: 16
+south_end: 16
+
+output_icon_size_y: 16
 
 se_convex: 0
 nw_convex: 0

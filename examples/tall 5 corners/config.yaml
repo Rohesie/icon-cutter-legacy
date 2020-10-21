@@ -4,7 +4,7 @@
 
 icon_size_y: 48
 
-center_y: 9
+north_end: 9
 
 se_convex: 0
 nw_convex: 0

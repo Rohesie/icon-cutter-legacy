@@ -255,6 +255,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "icon-cutter"
+version = "0.1.0"
+dependencies = [
+ "deflate",
+ "dont_disappear",
+ "image",
+ "lodepng",
+ "yaml-rust",
+]
+
+[[package]]
 name = "image"
 version = "0.23.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -478,17 +489,6 @@ dependencies = [
  "byteorder",
  "lzw",
  "miniz_oxide 0.3.7",
-]
-
-[[package]]
-name = "walls"
-version = "0.1.0"
-dependencies = [
- "deflate",
- "dont_disappear",
- "image",
- "lodepng",
- "yaml-rust",
 ]
 
 [[package]]

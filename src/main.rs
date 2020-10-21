@@ -65,10 +65,10 @@ fn main() {
 			.unwrap_or(image_path_string.len());
 		formatted_file_name = formatted_file_name.drain(..dot_offset).collect(); //Here we remove everything after the dot. Whether .dmi or .png is the same for us.
 
-		let building_return = build_walls(cursor, formatted_file_name, &prefs, icons_built);
+		let building_return = build_icons(cursor, formatted_file_name, &prefs, icons_built);
 		match building_return {
-			Ok(_x) => println!("Wall built successfully."),
-			Err(x) => println!("Error building wall: {}", x),
+			Ok(_x) => println!("Icons built successfully."),
+			Err(x) => println!("Error building icon: {}", x),
 		};
 		dont_disappear::any_key_to_continue::default();
 		icons_built += 1;
@@ -78,7 +78,7 @@ fn main() {
 	dont_disappear::any_key_to_continue::default();
 }
 
-fn build_walls(
+fn build_icons(
 	input: std::io::Cursor<Vec<u8>>,
 	file_string_path: String,
 	prefs: &config::PrefHolder,
@@ -100,12 +100,12 @@ fn build_walls(
 		.sqrt()
 		.ceil() as u32;
 
-	let width = max_index * prefs.icon_size_x;
-	let height = max_index * prefs.icon_size_y;
-	let mut new_wall = image::DynamicImage::new_rgba8(width, height);
+	let width = max_index * prefs.output_icon_size_x;
+	let height = max_index * prefs.output_icon_size_y;
+	let mut new_icon = image::DynamicImage::new_rgba8(width, height);
 	let mut dmi_signature = format!(
 		"# BEGIN DMI\nversion = {}\n\twidth = {}\n\theight = {}\n",
-		prefs.dmi_version, prefs.icon_size_x, prefs.icon_size_y
+		prefs.dmi_version, prefs.output_icon_size_x, prefs.output_icon_size_y
 	);
 	let mut index_x = 0;
 	let mut index_y = 0;
@@ -137,14 +137,14 @@ fn build_walls(
 		None => "icon".to_string(),
 	};
 
-	for wall_signature in possible_icon_states.iter() {
-		if mounted_prefabs.contains_key(wall_signature) {
+	for icon_signature in possible_icon_states.iter() {
+		if mounted_prefabs.contains_key(icon_signature) {
 			for frame in 0..prefs.frames_per_state {
 				imageops::replace(
-					&mut new_wall,
-					&mounted_prefabs[wall_signature][frame as usize],
-					(index_x * prefs.icon_size_x) + prefs.west_start,
-					(index_y * prefs.icon_size_y) + prefs.north_start,
+					&mut new_icon,
+					&mounted_prefabs[icon_signature][frame as usize],
+					(index_x * prefs.output_icon_size_x) + prefs.output_west_start,
+					(index_y * prefs.output_icon_size_y) + prefs.output_north_start,
 				);
 				if index_x > max_index - 2 {
 					index_x = 0;
@@ -152,7 +152,7 @@ fn build_walls(
 				} else {
 					index_x += 1;
 				};
-			}
+			};
 		} else {
 			for frame in 0..prefs.frames_per_state {
 				let frame_img = &corners
@@ -160,56 +160,56 @@ fn build_walls(
 					.unwrap()
 					.get(&helpers::smooth_dir_to_corner_type(
 						glob::NW_INDEX,
-						*wall_signature,
+						*icon_signature,
 					))
 					.unwrap()[frame as usize];
 				imageops::overlay(
-					&mut new_wall,
+					&mut new_icon,
 					frame_img,
-					(index_x * prefs.icon_size_x) + prefs.west_start,
-					(index_y * prefs.icon_size_y) + prefs.north_start,
+					(index_x * prefs.output_icon_size_x) + prefs.output_west_start,
+					(index_y * prefs.output_icon_size_y) + prefs.output_north_start,
 				);
 				let frame_img = &corners
 					.get(&glob::NE_INDEX)
 					.unwrap()
 					.get(&helpers::smooth_dir_to_corner_type(
 						glob::NE_INDEX,
-						*wall_signature,
+						*icon_signature,
 					))
 					.unwrap()[frame as usize];
 				imageops::overlay(
-					&mut new_wall,
+					&mut new_icon,
 					frame_img,
-					(index_x * prefs.icon_size_x) + prefs.east_start,
-					(index_y * prefs.icon_size_y) + prefs.north_start,
+					(index_x * prefs.output_icon_size_x) + prefs.output_east_start,
+					(index_y * prefs.output_icon_size_y) + prefs.output_north_start,
 				);
 				let frame_img = &corners
 					.get(&glob::SE_INDEX)
 					.unwrap()
 					.get(&helpers::smooth_dir_to_corner_type(
 						glob::SE_INDEX,
-						*wall_signature,
+						*icon_signature,
 					))
 					.unwrap()[frame as usize];
 				imageops::overlay(
-					&mut new_wall,
+					&mut new_icon,
 					frame_img,
-					(index_x * prefs.icon_size_x) + prefs.east_start,
-					(index_y * prefs.icon_size_y) + prefs.south_start,
+					(index_x * prefs.output_icon_size_x) + prefs.output_east_start,
+					(index_y * prefs.output_icon_size_y) + prefs.output_south_start,
 				);
 				let frame_img = &corners
 					.get(&glob::SW_INDEX)
 					.unwrap()
 					.get(&helpers::smooth_dir_to_corner_type(
 						glob::SW_INDEX,
-						*wall_signature,
+						*icon_signature,
 					))
 					.unwrap()[frame as usize];
 				imageops::overlay(
-					&mut new_wall,
+					&mut new_icon,
 					frame_img,
-					(index_x * prefs.icon_size_x) + prefs.west_start,
-					(index_y * prefs.icon_size_y) + prefs.south_start,
+					(index_x * prefs.output_icon_size_x) + prefs.output_west_start,
+					(index_y * prefs.output_icon_size_y) + prefs.output_south_start,
 				);
 				if index_x > max_index - 2 {
 					index_x = 0;
@@ -223,7 +223,7 @@ fn build_walls(
 		if prefs.frames_per_state == 1 {
 			string_signature = format!(
 				"state = \"{}-{}\"\n\tdirs = 1\n\tframes = 1\n",
-				&icon_state_name, wall_signature
+				&icon_state_name, icon_signature
 			)
 		} else {
 			let delay_vec = match &prefs.delay {
@@ -237,7 +237,7 @@ fn build_walls(
 			let delay_signature = delay_signature.join(",");
 			string_signature = format!(
 				"state = \"{}-{}\"\n\tdirs = 1\n\tframes = {}\n\tdelay = {}\n",
-				&icon_state_name, wall_signature, prefs.frames_per_state, delay_signature
+				&icon_state_name, icon_signature, prefs.frames_per_state, delay_signature
 			)
 		};
 		dmi_signature.push_str(&string_signature);
@@ -245,7 +245,7 @@ fn build_walls(
 	dmi_signature += "# END DMI\n";
 
 	let mut image_bytes: Vec<u8> = vec![];
-	new_wall
+	new_icon
 		.write_to(&mut image_bytes, image::ImageOutputFormat::Png)
 		.map_err(|x| error::ReadError::Image(x))?;
 
@@ -266,14 +266,14 @@ fn build_walls(
 }
 
 fn prepare_icon_states(is_diagonal: bool) -> Vec<u8> {
-	let mut wall_variations: Vec<u8> = vec![];
+	let mut icon_variations: Vec<u8> = vec![];
 	for smooth_dirs in glob::NONE..=glob::ADJ_ALL {
 		let combination_key = helpers::smooth_dir_to_combination_key(smooth_dirs, is_diagonal);
-		if wall_variations.contains(&combination_key) {
+		if icon_variations.contains(&combination_key) {
 			continue;
 		};
-		wall_variations.push(combination_key);
+		icon_variations.push(combination_key);
 	}
-	wall_variations.sort();
-	return wall_variations;
+	icon_variations.sort();
+	return icon_variations;
 }

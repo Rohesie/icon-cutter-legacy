@@ -10,14 +10,14 @@
 
 ## Name for the file to output.
 ## Optional, if unset the output name will be the same as the input file's, with "-output" appended to it, ending in ".dmi"
-## Example output with "wall" as input: "wall.dmi"
+## Example output with "smooth_icon" as input: "smooth_icon.dmi"
 
 #output_name: "output"
 
 
 ##N ame for the icon-state prefixes.
 ## Optional, if unset it will default to "icon"
-## Example output with "wall" as input: wall-0, wall-63, wall-137...
+## Example output with "smooth_icon" as input: smooth_icon-0, smooth_icon-63, smooth_icon-137...
 
 #base_icon_state: "icon"
 
@@ -32,14 +32,6 @@
 
 #icon_size_x: 32
 #icon_size_y: 32
-
-
-## Top-down sprites are centered in the middle: (16,16) for a 32x32 tile.
-## The same is not true in the Y axis for 3/4 walls in general, with the center being elevated by the perspective.
-## Optional, defaults to 16.
-
-#center_x: 16
-#center_y: 16
 
 
 ##v#v#v##
@@ -57,22 +49,22 @@
 #north_start: 0
 
 
-## Defaults to center_x.
+## Defaults to (icon_size_x / 2).
 
 #west_end = 16
 
 
-# Defaults to center_y.
+# Defaults to (icon_size_y / 2).
 
 #north_end = 16
 
 
-# Defaults to center_x.
+# Defaults to west_end.
 
 #east_start = 16
 
 
-# Defaults to center_y.
+# Defaults to north_end.
 
 #south_start = 16
 
@@ -87,6 +79,24 @@
 #south_end = 32
 
 ##^#^#^##
+
+
+## The resulting icon does not need to be the same size as the cut one.
+## The four settings are optional.
+
+## These two default to the base respective icon_size.
+#output_icon_size_x: 32
+#output_icon_size_y: 32
+
+## These two default to 0.
+#output_west_start: 0
+#output_north_start: 0
+
+## Defaults to the value of (output_west_start + (west_end - west_start)), which is the result of the x-offest plus the size in the x-axis of the west corner icons.
+#output_east_start: 16
+
+## Defaults to the value of (output_north_start + (north_end - north_start)), which is the result of the y-offest plus the size in the y-axis of the north corner icons.
+#output_south_start: 16
 
 
 ## For animated icons, how many frames each icon_state has. If unset it will default to 1 (one), denoting a non-animated image.
@@ -173,7 +183,7 @@ se_concave: 15
 
 
 ##Flat corners.
-##Optional. Will produce 16 wall variants without these, and 48 with them.
+##Optional. Will produce 16 icon variants without these, and 48 with them.
 #nw_flat: 16
 #ne_flat: 17
 #sw_flat: 18

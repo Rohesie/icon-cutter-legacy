@@ -2,7 +2,7 @@
 #output_name: "output"
 #base_icon_state: "icon"
 
-center_y: 6
+north_end: 6
 
 se_convex: 0
 nw_convex: 0
