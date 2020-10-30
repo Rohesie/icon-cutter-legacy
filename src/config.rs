@@ -927,7 +927,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 		prefab_overlays = Some(overlays_map);
 	};
 
-	let dmi_version = match read_some_string_config(&doc, "file_to_open") {
+	let dmi_version = match read_some_string_config(&doc, "dmi_version") {
 		Some(thing) => thing.to_string(),
 		None => "4.0".to_string(),
 	};
