@@ -99,6 +99,14 @@
 #output_south_start: 16
 
 
+## Produces 4 directions per final icon_state if set to true.
+## Some projects might want to be able to use BYOND's client dir rotation feature, and smoothed sprites might look disconnected as the junctions have changed.
+## This adds the properly rotated versions as directional images, allowing for client-side perspective rotation.
+## Optional, defaults to false.
+
+#produce_dirs: false
+
+
 ## For animated icons, how many frames each icon_state has. If unset it will default to 1 (one), denoting a non-animated image.
 
 #frames_per_state: 2
