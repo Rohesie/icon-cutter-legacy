@@ -43,3 +43,10 @@ pub const ADJ_N_S: u8 = ADJ_N | ADJ_S;
 pub const ADJ_E_W: u8 = ADJ_E | ADJ_W;
 
 pub const ADJ_ALL: u8 = !0;
+
+pub const BYOND_NORTH: u8 = 1 << 0;
+pub const BYOND_SOUTH: u8 = 1 << 1;
+pub const BYOND_EAST: u8 = 1 << 2;
+pub const BYOND_WEST: u8 = 1 << 3;
+//Order is relevant here. This is the order in which the dmi directions are set.
+pub const BYOND_CARDINALS: [u8; 4] = [BYOND_SOUTH, BYOND_NORTH, BYOND_EAST, BYOND_WEST];

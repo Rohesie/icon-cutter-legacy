@@ -37,6 +37,7 @@ pub struct PrefHolder {
 	pub delay: Option<Vec<u32>>,
 
 	pub produce_corners: bool,
+	pub produce_dirs: bool,
 
 	pub prefabs: Option<HashMap<u8, u32>>,
 	pub prefab_overlays: Option<HashMap<u8, Vec<u32>>>,
@@ -842,6 +843,16 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 		};
 	};
 
+	let produce_dirs;
+	if doc["produce_dirs"].is_badvalue() {
+		produce_dirs = false;
+	} else {
+		produce_dirs = match doc["produce_dirs"].as_bool() {
+			Some(thing) => thing,
+			None => false,
+		};
+	};
+
 	let prefabs;
 	if doc["prefabs"].is_badvalue() {
 		prefabs = None;
@@ -984,6 +995,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 		delay,
 
 		produce_corners,
+		produce_dirs,
 
 		prefabs,
 		prefab_overlays,

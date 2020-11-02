@@ -16,6 +16,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::Cursor;
 use std::path::Path;
+use std::collections::HashMap;
 
 fn main() {
 	let mut args: Vec<String> = env::args().collect();
@@ -96,7 +97,13 @@ fn build_icons(
 		"prepare_icon_states() produced {} results",
 		number_of_icon_states
 	);
-	let max_index = ((possible_icon_states.len() as u32 * prefs.frames_per_state) as f64)
+	let icon_directions;
+	if prefs.produce_dirs {
+		icon_directions = glob::BYOND_CARDINALS.to_vec();
+	} else {
+		icon_directions = vec![glob::BYOND_SOUTH];
+	};
+	let max_index = ((possible_icon_states.len() as u32 * prefs.frames_per_state * icon_directions.len() as u32) as f64)
 		.sqrt()
 		.ceil() as u32;
 
@@ -107,8 +114,6 @@ fn build_icons(
 		"# BEGIN DMI\nversion = {}\n\twidth = {}\n\theight = {}\n",
 		prefs.dmi_version, prefs.output_icon_size_x, prefs.output_icon_size_y
 	);
-	let mut index_x = 0;
-	let mut index_y = 0;
 
 	let output_name;
 	match &prefs.output_name {
@@ -137,25 +142,26 @@ fn build_icons(
 		None => "icon".to_string(),
 	};
 
+	let mut assembled_icons: HashMap<u8, Vec<image::DynamicImage>> = HashMap::new();
+
 	for icon_signature in possible_icon_states.iter() {
+		let mut icon_state_images = vec![];
 		if mounted_prefabs.contains_key(icon_signature) {
 			for frame in 0..prefs.frames_per_state {
+				let mut image_frame = image::DynamicImage::new_rgba8(prefs.output_icon_size_x, prefs.output_icon_size_y);
 				imageops::replace(
-					&mut new_icon,
+					&mut image_frame,
 					&mounted_prefabs[icon_signature][frame as usize],
-					(index_x * prefs.output_icon_size_x) + prefs.output_west_start,
-					(index_y * prefs.output_icon_size_y) + prefs.output_north_start,
+					prefs.output_west_start,
+					prefs.output_north_start,
 				);
-				if index_x > max_index - 2 {
-					index_x = 0;
-					index_y += 1;
-				} else {
-					index_x += 1;
-				};
+				icon_state_images.push(image_frame);
+
 			};
 		} else {
 			for frame in 0..prefs.frames_per_state {
-				let frame_img = &corners
+				let mut image_frame = image::DynamicImage::new_rgba8(prefs.output_icon_size_x, prefs.output_icon_size_y);
+				let corner_img = &corners
 					.get(&glob::NW_INDEX)
 					.unwrap()
 					.get(&helpers::smooth_dir_to_corner_type(
@@ -164,12 +170,12 @@ fn build_icons(
 					))
 					.unwrap()[frame as usize];
 				imageops::overlay(
-					&mut new_icon,
-					frame_img,
-					(index_x * prefs.output_icon_size_x) + prefs.output_west_start,
-					(index_y * prefs.output_icon_size_y) + prefs.output_north_start,
+					&mut image_frame,
+					corner_img,
+					prefs.output_west_start,
+					prefs.output_north_start,
 				);
-				let frame_img = &corners
+				let corner_img = &corners
 					.get(&glob::NE_INDEX)
 					.unwrap()
 					.get(&helpers::smooth_dir_to_corner_type(
@@ -178,12 +184,12 @@ fn build_icons(
 					))
 					.unwrap()[frame as usize];
 				imageops::overlay(
-					&mut new_icon,
-					frame_img,
-					(index_x * prefs.output_icon_size_x) + prefs.output_east_start,
-					(index_y * prefs.output_icon_size_y) + prefs.output_north_start,
+					&mut image_frame,
+					corner_img,
+					prefs.output_east_start,
+					prefs.output_north_start,
 				);
-				let frame_img = &corners
+				let corner_img = &corners
 					.get(&glob::SE_INDEX)
 					.unwrap()
 					.get(&helpers::smooth_dir_to_corner_type(
@@ -192,12 +198,12 @@ fn build_icons(
 					))
 					.unwrap()[frame as usize];
 				imageops::overlay(
-					&mut new_icon,
-					frame_img,
-					(index_x * prefs.output_icon_size_x) + prefs.output_east_start,
-					(index_y * prefs.output_icon_size_y) + prefs.output_south_start,
+					&mut image_frame,
+					corner_img,
+					prefs.output_east_start,
+					prefs.output_south_start,
 				);
-				let frame_img = &corners
+				let corner_img = &corners
 					.get(&glob::SW_INDEX)
 					.unwrap()
 					.get(&helpers::smooth_dir_to_corner_type(
@@ -206,10 +212,29 @@ fn build_icons(
 					))
 					.unwrap()[frame as usize];
 				imageops::overlay(
+					&mut image_frame,
+					corner_img,
+					prefs.output_west_start,
+					prefs.output_south_start,
+				);
+				icon_state_images.push(image_frame);
+			}
+		};
+		assembled_icons.insert(*icon_signature, icon_state_images);
+	};
+
+	let mut index_x = 0;
+	let mut index_y = 0;
+
+	for icon_signature in possible_icon_states.iter() {
+		for icon_state_dir in icon_directions.iter() {
+			let frame_image_vector = &assembled_icons[&helpers::dir_offset_signature(*icon_signature, *icon_state_dir)?];
+			for frame_image in frame_image_vector.iter() {
+				imageops::replace(
 					&mut new_icon,
-					frame_img,
-					(index_x * prefs.output_icon_size_x) + prefs.output_west_start,
-					(index_y * prefs.output_icon_size_y) + prefs.output_south_start,
+					frame_image,
+					index_x * prefs.output_icon_size_x,
+					index_y * prefs.output_icon_size_y,
 				);
 				if index_x > max_index - 2 {
 					index_x = 0;
@@ -217,15 +242,14 @@ fn build_icons(
 				} else {
 					index_x += 1;
 				};
-			}
+			};
 		};
-		let string_signature;
-		if prefs.frames_per_state == 1 {
-			string_signature = format!(
-				"state = \"{}-{}\"\n\tdirs = 1\n\tframes = 1\n",
-				&icon_state_name, icon_signature
-			)
-		} else {
+
+		let mut icon_state_dmi_signature = format!(
+			"state = \"{}-{}\"\n\tdirs = {}\n\tframes = {}\n",
+			&icon_state_name, icon_signature, icon_directions.len(), prefs.frames_per_state
+		);
+		if prefs.frames_per_state > 1 {
 			let delay_vec = match &prefs.delay {
 				Some(thing) => thing,
 				None => {return Err(error::ReadError::Generic("Error while trying to read the delay preference, no value found. This shouldn't happen.".to_string()))}
@@ -235,14 +259,11 @@ fn build_icons(
 				delay_signature.push(delay_value.to_string())
 			}
 			let delay_signature = delay_signature.join(",");
-			string_signature = format!(
-				"state = \"{}-{}\"\n\tdirs = 1\n\tframes = {}\n\tdelay = {}\n",
-				&icon_state_name, icon_signature, prefs.frames_per_state, delay_signature
-			)
+			icon_state_dmi_signature.push_str(&format!("\tdelay = {}\n", delay_signature));
 		};
-		dmi_signature.push_str(&string_signature);
-	}
-	dmi_signature += "# END DMI\n";
+		dmi_signature.push_str(&icon_state_dmi_signature);
+	};
+	dmi_signature.push_str("# END DMI\n");
 
 	let mut image_bytes: Vec<u8> = vec![];
 	new_icon

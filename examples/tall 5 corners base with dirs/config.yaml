@@ -1,13 +1,17 @@
 ## Uncomment by removing the '#' character in front of them to enable these ##
-#output_name: "output"
-#base_icon_state: "icon"
+output_name: "base"
+base_icon_state: "base"
 
 icon_size_y: 48
 
 north_start: 16
 north_end: 19
+south_start: 19
+south_end: 48
 
 output_icon_size_y: 32
+
+produce_dirs: true
 
 se_convex: 0
 nw_convex: 0
