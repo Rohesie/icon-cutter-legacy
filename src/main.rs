@@ -3,20 +3,18 @@
 //Internal modules.
 mod config;
 mod dmi;
-mod error;
 mod glob;
 mod helpers;
 
-//To do the image manipulation.
+use anyhow::Result;
+use dmi::icon;
 use image::imageops;
-
-//To export the string dmi metadata signature.
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::Cursor;
 use std::path::Path;
-use std::collections::HashMap;
 
 fn main() {
 	let mut args: Vec<String> = env::args().collect();
@@ -27,7 +25,7 @@ fn main() {
 	match config::load_configs(self_path.clone()) {
 		Ok(thing) => prefs = thing,
 		Err(e) => {
-			println!("Failed to load configs: {}", e);
+			println!("Failed to load configs: {:#?}", e);
 			dont_disappear::any_key_to_continue::default();
 			return;
 		}
@@ -46,14 +44,14 @@ fn main() {
 		match File::open(&path) {
 			Ok(f) => file = f,
 			Err(e) => {
-				println!("Wrong file path: {:?}", e);
+				println!("Wrong file path: {:#?}", e);
 				dont_disappear::any_key_to_continue::default();
 				return;
 			}
 		};
 		let mut contents = Vec::new();
 		if let Err(e) = file.read_to_end(&mut contents) {
-			println!("Unable to read file: {:?}", e);
+			println!("Unable to read file: {:#?}", e);
 			dont_disappear::any_key_to_continue::default();
 			return;
 		};
@@ -69,7 +67,7 @@ fn main() {
 		let building_return = build_icons(cursor, formatted_file_name, &prefs, icons_built);
 		match building_return {
 			Ok(_x) => println!("Icons built successfully."),
-			Err(x) => println!("Error building icon: {}", x),
+			Err(x) => println!("Error building icon: {:#?}", x),
 		};
 		dont_disappear::any_key_to_continue::default();
 		icons_built += 1;
@@ -84,7 +82,7 @@ fn build_icons(
 	file_string_path: String,
 	prefs: &config::PrefHolder,
 	icons_built: u32,
-) -> Result<bool, error::ReadError> {
+) -> Result<bool> {
 	let corners_and_prefabs = prefs.build_corners_and_prefabs(input, &*file_string_path)?;
 	let corners = corners_and_prefabs.0;
 	let mounted_prefabs = corners_and_prefabs.1;
@@ -103,17 +101,6 @@ fn build_icons(
 	} else {
 		icon_directions = vec![glob::BYOND_SOUTH];
 	};
-	let max_index = ((possible_icon_states.len() as u32 * prefs.frames_per_state * icon_directions.len() as u32) as f64)
-		.sqrt()
-		.ceil() as u32;
-
-	let width = max_index * prefs.output_icon_size_x;
-	let height = max_index * prefs.output_icon_size_y;
-	let mut new_icon = image::DynamicImage::new_rgba8(width, height);
-	let mut dmi_signature = format!(
-		"# BEGIN DMI\nversion = {}\n\twidth = {}\n\theight = {}\n",
-		prefs.dmi_version, prefs.output_icon_size_x, prefs.output_icon_size_y
-	);
 
 	let output_name;
 	match &prefs.output_name {
@@ -132,7 +119,10 @@ fn build_icons(
 					output_name = format!("output({})", icons_built + 1)
 				};
 			} else {
-				output_name = format!("{}-output", helpers::trim_path_before_last_slash(file_string_path.clone()));
+				output_name = format!(
+					"{}-output",
+					helpers::trim_path_before_last_slash(file_string_path.clone())
+				);
 			};
 		}
 	};
@@ -148,7 +138,10 @@ fn build_icons(
 		let mut icon_state_images = vec![];
 		if mounted_prefabs.contains_key(icon_signature) {
 			for frame in 0..prefs.frames_per_state {
-				let mut image_frame = image::DynamicImage::new_rgba8(prefs.output_icon_size_x, prefs.output_icon_size_y);
+				let mut image_frame = image::DynamicImage::new_rgba8(
+					prefs.output_icon_size_x,
+					prefs.output_icon_size_y,
+				);
 				imageops::replace(
 					&mut image_frame,
 					&mounted_prefabs[icon_signature][frame as usize],
@@ -156,11 +149,13 @@ fn build_icons(
 					prefs.output_north_start,
 				);
 				icon_state_images.push(image_frame);
-
-			};
+			}
 		} else {
 			for frame in 0..prefs.frames_per_state {
-				let mut image_frame = image::DynamicImage::new_rgba8(prefs.output_icon_size_x, prefs.output_icon_size_y);
+				let mut image_frame = image::DynamicImage::new_rgba8(
+					prefs.output_icon_size_x,
+					prefs.output_icon_size_y,
+				);
 				let corner_img = &corners
 					.get(&glob::NW_INDEX)
 					.unwrap()
@@ -221,61 +216,42 @@ fn build_icons(
 			}
 		};
 		assembled_icons.insert(*icon_signature, icon_state_images);
-	};
+	}
 
-	let mut index_x = 0;
-	let mut index_y = 0;
+	let mut icon_states = vec![];
 
 	for icon_signature in possible_icon_states.iter() {
+		let mut icon_state_frames = vec![];
+
 		for icon_state_dir in icon_directions.iter() {
-			let frame_image_vector = &assembled_icons[&helpers::dir_offset_signature(*icon_signature, *icon_state_dir)?];
-			for frame_image in frame_image_vector.iter() {
-				imageops::replace(
-					&mut new_icon,
-					frame_image,
-					index_x * prefs.output_icon_size_x,
-					index_y * prefs.output_icon_size_y,
-				);
-				if index_x > max_index - 2 {
-					index_x = 0;
-					index_y += 1;
-				} else {
-					index_x += 1;
-				};
-			};
-		};
+			icon_state_frames.extend(
+				assembled_icons[&helpers::dir_offset_signature(*icon_signature, *icon_state_dir)?]
+					.clone(),
+			);
+		}
 
-		let mut icon_state_dmi_signature = format!(
-			"state = \"{}-{}\"\n\tdirs = {}\n\tframes = {}\n",
-			&icon_state_name, icon_signature, icon_directions.len(), prefs.frames_per_state
-		);
-		if prefs.frames_per_state > 1 {
-			let delay_vec = match &prefs.delay {
-				Some(thing) => thing,
-				None => {return Err(error::ReadError::Generic("Error while trying to read the delay preference, no value found. This shouldn't happen.".to_string()))}
-				};
-			let mut delay_signature = vec![];
-			for delay_value in delay_vec.iter() {
-				delay_signature.push(delay_value.to_string())
-			}
-			let delay_signature = delay_signature.join(",");
-			icon_state_dmi_signature.push_str(&format!("\tdelay = {}\n", delay_signature));
-		};
-		dmi_signature.push_str(&icon_state_dmi_signature);
+		let delay = prefs.delay.clone();
+
+		icon_states.push(icon::IconState {
+			name: format!("{}-{}", &icon_state_name, icon_signature),
+			dirs: icon_directions.len() as u8,
+			frames: prefs.frames_per_state,
+			images: icon_state_frames,
+			delay,
+			..Default::default()
+		})
+	}
+
+	let new_icon = icon::Icon {
+		version: Default::default(),
+		width: prefs.output_icon_size_x,
+		height: prefs.output_icon_size_y,
+		states: icon_states,
 	};
-	dmi_signature.push_str("# END DMI\n");
-
-	let mut image_bytes: Vec<u8> = vec![];
-	new_icon
-		.write_to(&mut image_bytes, image::ImageOutputFormat::Png)
-		.map_err(|x| error::ReadError::Image(x))?;
-
-	let mut dmi = dmi::dmi_from_vec(&image_bytes)?;
-	dmi.write_ztxt_chunk(dmi_signature)?;
-
 	let output_name = format!("{}.dmi", output_name);
 	let dmi_path = Path::new(&output_name);
-	dmi.write(dmi_path)?;
+	let mut file = File::create(&dmi_path)?;
+	new_icon.save(&mut file)?;
 
 	println!(
 		"{} icon states produced, with {} frames each, for a total of {} frames.",

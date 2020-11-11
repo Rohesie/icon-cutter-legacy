@@ -1,5 +1,5 @@
+use super::dmi::error;
 use super::glob;
-use super::error;
 use std::collections::HashSet;
 
 pub fn smooth_dir_to_combination_key(smooth_dirs: u8, is_diagonal: bool) -> u8 {
@@ -97,9 +97,9 @@ pub fn smooth_dir_to_corner_type(corner: u8, smooth_dirs: u8) -> u8 {
 	}
 }
 
-pub fn dir_offset_signature(icon_signature: u8, byond_dir: u8) -> Result<u8, error::ReadError> {
+pub fn dir_offset_signature(icon_signature: u8, byond_dir: u8) -> Result<u8, error::DmiError> {
 	if byond_dir == glob::BYOND_SOUTH {
-		return Ok(icon_signature)
+		return Ok(icon_signature);
 	}
 	let mut all_junctions = [
 		icon_signature & glob::ADJ_N,
@@ -109,10 +109,11 @@ pub fn dir_offset_signature(icon_signature: u8, byond_dir: u8) -> Result<u8, err
 		icon_signature & glob::ADJ_NE,
 		icon_signature & glob::ADJ_SE,
 		icon_signature & glob::ADJ_SW,
-		icon_signature & glob::ADJ_NW
-		];
+		icon_signature & glob::ADJ_NW,
+	];
 	match byond_dir {
-		glob::BYOND_NORTH => { //Reverse directions.
+		glob::BYOND_NORTH => {
+			//Reverse directions.
 			all_junctions[0] = all_junctions[0] << 1;
 			all_junctions[1] = all_junctions[1] >> 1;
 			all_junctions[2] = all_junctions[2] << 1;
@@ -121,8 +122,9 @@ pub fn dir_offset_signature(icon_signature: u8, byond_dir: u8) -> Result<u8, err
 			all_junctions[5] = all_junctions[5] << 2;
 			all_junctions[6] = all_junctions[6] >> 2;
 			all_junctions[7] = all_junctions[7] >> 2;
-		},
-		glob::BYOND_EAST => { //Counter-clockwise 90 degrees rotation.
+		}
+		glob::BYOND_EAST => {
+			//Counter-clockwise 90 degrees rotation.
 			all_junctions[0] = all_junctions[0] << 3;
 			all_junctions[1] = all_junctions[1] << 1;
 			all_junctions[2] = all_junctions[2] >> 2;
@@ -131,8 +133,9 @@ pub fn dir_offset_signature(icon_signature: u8, byond_dir: u8) -> Result<u8, err
 			all_junctions[5] = all_junctions[5] >> 1;
 			all_junctions[6] = all_junctions[6] >> 1;
 			all_junctions[7] = all_junctions[7] >> 1;
-		},
-		glob::BYOND_WEST => { //Clockwise 90 degrees rotation.
+		}
+		glob::BYOND_WEST => {
+			//Clockwise 90 degrees rotation.
 			all_junctions[0] = all_junctions[0] << 2;
 			all_junctions[1] = all_junctions[1] << 2;
 			all_junctions[2] = all_junctions[2] >> 1;
@@ -141,15 +144,26 @@ pub fn dir_offset_signature(icon_signature: u8, byond_dir: u8) -> Result<u8, err
 			all_junctions[5] = all_junctions[5] << 1;
 			all_junctions[6] = all_junctions[6] << 1;
 			all_junctions[7] = all_junctions[7] >> 3;
-		},
-		_ => return Err(error::ReadError::Generic(format!("dir_offset_signature called with invalid byond_dir: {}", byond_dir)))
+		}
+		_ => {
+			return Err(error::DmiError::Generic(format!(
+				"dir_offset_signature called with invalid byond_dir: {}",
+				byond_dir
+			)))
+		}
 	};
-	let offset_signature = all_junctions[0] | all_junctions[1] | all_junctions[2] | all_junctions[3] | all_junctions[4] | all_junctions[5] | all_junctions[6] | all_junctions[7];
+	let offset_signature = all_junctions[0]
+		| all_junctions[1]
+		| all_junctions[2]
+		| all_junctions[3]
+		| all_junctions[4]
+		| all_junctions[5]
+		| all_junctions[6]
+		| all_junctions[7];
 	Ok(offset_signature)
 
 	//Reverse the cardinals first.
 	//let mut offset_signature = ((icon_signature & 0b0101) << 1) | ((icon_signature & 0b1010) >> 1);
-
 }
 
 ///Takes everything that comes before the first dot in the string, discarding the rest.

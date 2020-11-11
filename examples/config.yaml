@@ -69,12 +69,12 @@
 #south_start = 16
 
 
-## Defaults to 32.
+## Defaults to icon_size_x.
 
 #east_end = 32
 
 
-## Defaults to 32.
+## Defaults to icon_size_y.
 
 #south_end = 32
 

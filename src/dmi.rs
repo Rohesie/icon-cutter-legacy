@@ -1,106 +1,155 @@
-mod chunk;
-mod crc;
+pub mod chunk;
+pub mod crc;
+pub mod error;
+pub mod icon;
+pub mod ztxt;
 
-use super::error;
 use std::convert::TryFrom;
-use std::fs::File;
 use std::io::prelude::*;
-use std::path::Path;
 
 /// The PNG magic header
-const MAGIC: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
+pub const MAGIC: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
-pub struct Dmi {
+pub struct RawDmi {
 	pub header: [u8; 8],
-	pub chunk_ihdr: chunk::Chunk,
-	pub chunk_ztxt: chunk::Chunk,
-	pub chunk_idat: chunk::Chunk,
-	pub chunk_iend: chunk::Chunk,
-	pub other_chunks: Vec<chunk::Chunk>,
+	pub chunk_ihdr: chunk::RawGenericChunk,
+	pub chunk_ztxt: Option<ztxt::RawZtxtChunk>,
+	pub chunk_idat: chunk::RawGenericChunk,
+	pub chunk_iend: chunk::RawGenericChunk,
+	pub other_chunks: Vec<chunk::RawGenericChunk>,
 }
 
-impl Dmi {
-	pub fn write_ztxt_chunk(&mut self, new_text: String) -> Result<bool, error::ReadError> {
-		let return_val = self.chunk_ztxt.write_ztxt_chunk(new_text)?;
-		Ok(return_val)
-	}
+impl RawDmi {
+	pub fn load<R: Read>(mut reader: R) -> Result<RawDmi, error::DmiError> {
+		let mut dmi_bytes = Vec::new();
+		reader.read_to_end(&mut dmi_bytes)?;
+		// 8 bytes for the PNG file signature.
+		// 12 + 13 bytes for the IHDR chunk.
+		// 12 for the IDAT chunk.
+		// 12 + 3 for the zTXt chunk.
+		// 12 for the IEND chunk.
 
-	pub fn dmi_to_vec(&mut self) -> Result<Vec<u8>, error::ReadError> {
-		let mut dmi_bytes: Vec<u8> = vec![];
+		// Total minimum size for a DMI file: 72 bytes.
 
-		dmi_bytes.extend_from_slice(&self.header);
-		dmi_bytes = self.chunk_ihdr.write_to_vec(dmi_bytes)?;
-		/* //Let's drop the other chunks for now. None of them are necessary for dmi files.
-		for current_chunk in &mut self.other_chunks {
-			dmi_bytes = current_chunk.write_to_vec(dmi_bytes)?;
-		}
-		*/
-		dmi_bytes = self.chunk_ztxt.write_to_vec(dmi_bytes)?;
-		dmi_bytes = self.chunk_idat.write_to_vec(dmi_bytes)?;
-		dmi_bytes = self.chunk_iend.write_to_vec(dmi_bytes)?;
-		Ok(dmi_bytes)
-	}
+		if dmi_bytes.len() < 72 {
+			return Err(error::DmiError::Generic(format!("Failed to load DMI. Supplied reader contained size of {} bytes, lower than the required 72.", dmi_bytes.len())));
+		};
 
-	pub fn write(&mut self, path: &Path) -> Result<bool, error::ReadError> {
-		let dmi_bytes: Vec<u8> = self.dmi_to_vec()?;
+		let header = &dmi_bytes[0..8];
+		if dmi_bytes[0..8] != MAGIC {
+			return Err(error::DmiError::Generic(format!(
+				"PNG header mismatch (expected {:#?}, found {:#?})",
+				MAGIC, header
+			)));
+		};
+		let header = MAGIC;
+		let mut chunk_ihdr = None;
+		let mut chunk_ztxt = None;
+		let mut chunk_idat = None;
+		let chunk_iend;
+		let mut other_chunks = vec![];
 
-		let mut file = File::create(&path).map_err(|x| error::ReadError::Io(x))?;
-		file.write_all(&dmi_bytes)
-			.map_err(|x| error::ReadError::Io(x))?;
+		// Index starts after the PNG header.
+		let mut index = 8;
 
-		Ok(true)
-	}
-
-	pub fn save(&mut self, path: String) -> Result<bool, error::ReadError> {
-		let dmi_bytes: Vec<u8> = self.dmi_to_vec()?;
-
-		let path = Path::new(&path);
-		let mut file = File::create(&path).map_err(|x| error::ReadError::Io(x))?;
-		file.write_all(&dmi_bytes)
-			.map_err(|x| error::ReadError::Io(x))?;
-
-		Ok(true)
-	}
-}
-
-pub fn dmi_from_vec(bytes_vec: &[u8]) -> Result<Dmi, error::ReadError> {
-	let header = <[u8; 8]>::try_from(&bytes_vec[0..8]).unwrap();
-
-	if header != MAGIC {
-		return Err(error::ReadError::MagicMismatch(header));
-	}
-
-	let mut index = 8; //Without the magic header.
-
-	let mut chunk_ihdr = chunk::Chunk::default();
-	let mut chunk_ztxt = chunk::Chunk::default();
-	let mut chunk_idat = chunk::Chunk::default();
-	let chunk_iend;
-	let mut other_chunks: Vec<chunk::Chunk> = vec![];
-
-	loop {
-		let (current_chunk, new_index) = chunk::Chunk::read_from_vec(&bytes_vec, index)?;
-		index = new_index;
-		match &current_chunk.chunk_type {
-			b"IHDR" => chunk_ihdr = current_chunk.clone(),
-			b"zTXt" => chunk_ztxt = current_chunk.clone(),
-			b"IDAT" => chunk_idat = current_chunk.clone(),
-			b"IEND" => {
-				chunk_iend = current_chunk.clone();
-				break;
+		loop {
+			if index + 12 > dmi_bytes.len() {
+				return Err(error::DmiError::Generic(
+					"Failed to load DMI. Buffer end reached without finding an IEND chunk."
+						.to_string(),
+				));
 			}
-			_ => other_chunks.push(current_chunk.clone()),
+
+			let chunk_data_length = u32::from_be_bytes([
+				dmi_bytes[index],
+				dmi_bytes[index + 1],
+				dmi_bytes[index + 2],
+				dmi_bytes[index + 3],
+			]) as usize;
+
+			// 12 minimum necessary bytes from the chunk plus the data length.
+			let chunk_bytes = dmi_bytes[index..(index + 12 + chunk_data_length)].to_vec();
+			let raw_chunk = chunk::RawGenericChunk::load(&mut &*chunk_bytes)?;
+			index += 12 + chunk_data_length;
+
+			match &raw_chunk.chunk_type {
+				b"IHDR" => chunk_ihdr = Some(raw_chunk),
+				b"zTXt" => chunk_ztxt = Some(ztxt::RawZtxtChunk::try_from(raw_chunk)?),
+				b"IDAT" => chunk_idat = Some(raw_chunk),
+				b"IEND" => {
+					chunk_iend = Some(raw_chunk);
+					break;
+				}
+				_ => other_chunks.push(raw_chunk),
+			}
 		}
+		if chunk_ihdr == None || chunk_idat == None {
+			return Err(error::DmiError::Generic(format!("Failed to load DMI. Buffer end reached without finding a necessary chunk.\nIHDR: {:#?}\nIDAT: {:#?}", chunk_ihdr, chunk_idat)));
+		};
+		let chunk_ihdr = chunk_ihdr.unwrap();
+		let chunk_idat = chunk_idat.unwrap();
+		let chunk_iend = chunk_iend.unwrap();
+
+		Ok(RawDmi {
+			header,
+			chunk_ihdr,
+			chunk_ztxt,
+			chunk_idat,
+			chunk_iend,
+			other_chunks,
+		})
 	}
 
-	let dmi_result = Dmi {
-		header,
-		chunk_ihdr,
-		chunk_ztxt,
-		chunk_idat,
-		chunk_iend,
-		other_chunks,
-	};
-	Ok(dmi_result)
+	pub fn save<W: Write>(&self, mut writter: &mut W) -> Result<usize, error::DmiError> {
+		let bytes_written = writter.write(&self.header)?;
+		let mut total_bytes_written = bytes_written;
+		if bytes_written < 8 {
+			return Err(error::DmiError::Generic(format!(
+				"Failed to save DMI. Buffer unable to hold the data, only {} bytes written.",
+				total_bytes_written
+			)));
+		};
+
+		let bytes_written = self.chunk_ihdr.save(&mut writter)?;
+		total_bytes_written += bytes_written;
+		if bytes_written < u32::from_be_bytes(self.chunk_ihdr.data_length) as usize + 12 {
+			return Err(error::DmiError::Generic(format!(
+				"Failed to save DMI. Buffer unable to hold the data, only {} bytes written.",
+				total_bytes_written
+			)));
+		};
+
+		match &self.chunk_ztxt {
+			Some(chunk_ztxt) => {
+				let bytes_written = chunk_ztxt.save(&mut writter)?;
+				total_bytes_written += bytes_written;
+				if bytes_written < u32::from_be_bytes(chunk_ztxt.data_length) as usize + 12 {
+					return Err(error::DmiError::Generic(format!("Failed to save DMI. Buffer unable to hold the data, only {} bytes written.", total_bytes_written)));
+				};
+			}
+			None => (),
+		};
+
+		let bytes_written = self.chunk_idat.save(&mut writter)?;
+		total_bytes_written += bytes_written;
+		if bytes_written < u32::from_be_bytes(self.chunk_idat.data_length) as usize + 12 {
+			return Err(error::DmiError::Generic(format!(
+				"Failed to save DMI. Buffer unable to hold the data, only {} bytes written.",
+				total_bytes_written
+			)));
+		};
+
+		let bytes_written = self.chunk_iend.save(&mut writter)?;
+		total_bytes_written += bytes_written;
+		if bytes_written < u32::from_be_bytes(self.chunk_iend.data_length) as usize + 12 {
+			return Err(error::DmiError::Generic(format!(
+				"Failed to save DMI. Buffer unable to hold the data, only {} bytes written.",
+				total_bytes_written
+			)));
+		};
+
+		Ok(total_bytes_written)
+	}
+
 }

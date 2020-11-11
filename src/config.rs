@@ -1,3 +1,5 @@
+use anyhow::bail;
+use anyhow::Result;
 use image::imageops;
 use std::collections::HashMap;
 use std::fs::File;
@@ -5,10 +7,9 @@ use std::io::prelude::*;
 use std::path::Path;
 use yaml_rust::YamlLoader;
 
-use super::error;
 use super::glob;
 
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, PartialEq, Debug, Default)]
 pub struct PrefHolder {
 	pub file_to_open: Option<String>,
 	pub output_name: Option<String>,
@@ -34,7 +35,7 @@ pub struct PrefHolder {
 	pub output_south_start: u32,
 
 	pub frames_per_state: u32,
-	pub delay: Option<Vec<u32>>,
+	pub delay: Option<Vec<f32>>,
 
 	pub produce_corners: bool,
 	pub produce_dirs: bool,
@@ -77,15 +78,11 @@ impl PrefHolder {
 		&self,
 		input: std::io::Cursor<Vec<u8>>,
 		file_name: &str,
-	) -> Result<
-		(
-			HashMap<u8, HashMap<u8, Vec<image::DynamicImage>>>,
-			HashMap<u8, Vec<image::DynamicImage>>,
-		),
-		error::ReadError,
-	> {
-		let img =
-			image::load(input, image::ImageFormat::Png).map_err(|x| error::ReadError::Image(x))?;
+	) -> Result<(
+		HashMap<u8, HashMap<u8, Vec<image::DynamicImage>>>,
+		HashMap<u8, Vec<image::DynamicImage>>,
+	)> {
+		let img = image::load(input, image::ImageFormat::Png)?;
 
 		let img_dimensions = match &img {
 			image::DynamicImage::ImageLuma8(inner_img) => inner_img.dimensions(),
@@ -247,7 +244,7 @@ impl PrefHolder {
 					match prefabs.remove(signature) {
 						Some(frame_vector) => {
 							if frame_vector.len() as u32 != self.frames_per_state {
-								return Err(error::ReadError::Generic(format!("Number of prefab overlays for signature {} does not match the frames per state ({}): {}. Aborting to avoid undefined behavior.", signature, self.frames_per_state, frame_vector.len())))
+								bail!("Number of prefab overlays for signature {} does not match the frames per state ({}): {}. Aborting to avoid undefined behavior.", signature, self.frames_per_state, frame_vector.len())
 							}; // Sanity check, this should never happen unless the logic above was changed.
 							let mut unoverlaid_vector = frame_vector;
 							let mut overlaid_vector = vec![];
@@ -265,7 +262,7 @@ impl PrefHolder {
 								};
 							prefabs.insert(*signature, overlaid_vector);
 						},
-						None => return Err(error::ReadError::Generic(format!("Prefab overlay defined for inexistent prefab. Signature: {}. Overlays: {:?}.", signature, location_vec)))
+						None => bail!("Prefab overlay defined for inexistent prefab. Signature: {}. Overlays: {:?}.", signature, location_vec)
 					};
 				}
 			}
@@ -281,7 +278,7 @@ impl PrefHolder {
 		frame_offset: u32,
 		width_in_frames: u32,
 		max_total_frames: u32,
-	) -> Result<(u32, u32, u32, u32), error::ReadError> {
+	) -> Result<(u32, u32, u32, u32)> {
 		let corner_parameters = match corner_dir {
 			glob::NE_INDEX => {
 				let pos_name_and_value = match corner_type {
@@ -292,21 +289,14 @@ impl PrefHolder {
 					glob::FLAT => {
 						let ne_flat = match self.ne_flat {
 							Some(value) => value,
-							None => {
-								return Err(error::ReadError::Generic(format!(
-									"get_corner_params -> NE_INDEX -> glob::FLAT -> {:?}",
-									self.ne_flat
-								)))
-							}
+							None => bail!(
+								"get_corner_params -> NE_INDEX -> glob::FLAT -> {:?}",
+								self.ne_flat
+							),
 						};
 						("ne_flat", ne_flat)
 					}
-					_ => {
-						return Err(error::ReadError::Generic(format!(
-							"get_corner_params -> NE_INDEX -> {}",
-							corner_type
-						)))
-					}
+					_ => bail!("get_corner_params -> NE_INDEX -> {}", corner_type),
 				};
 				(
 					pos_name_and_value.0,
@@ -326,21 +316,14 @@ impl PrefHolder {
 					glob::FLAT => {
 						let se_flat = match self.se_flat {
 							Some(value) => value,
-							None => {
-								return Err(error::ReadError::Generic(format!(
-									"get_corner_params -> SE_INDEX -> glob::FLAT -> {:?}",
-									self.se_flat
-								)))
-							}
+							None => bail!(
+								"get_corner_params -> SE_INDEX -> glob::FLAT -> {:?}",
+								self.se_flat
+							),
 						};
 						("se_flat", se_flat)
 					}
-					_ => {
-						return Err(error::ReadError::Generic(format!(
-							"get_corner_params -> SE_INDEX -> {}",
-							corner_type
-						)))
-					}
+					_ => bail!("get_corner_params -> SE_INDEX -> {}", corner_type),
 				};
 				(
 					pos_name_and_value.0,
@@ -360,21 +343,14 @@ impl PrefHolder {
 					glob::FLAT => {
 						let sw_flat = match self.sw_flat {
 							Some(value) => value,
-							None => {
-								return Err(error::ReadError::Generic(format!(
-									"get_corner_params -> SW_INDEX -> glob::FLAT -> {:?}",
-									self.sw_flat
-								)))
-							}
+							None => bail!(
+								"get_corner_params -> SW_INDEX -> glob::FLAT -> {:?}",
+								self.sw_flat
+							),
 						};
 						("sw_flat", sw_flat)
 					}
-					_ => {
-						return Err(error::ReadError::Generic(format!(
-							"get_corner_params -> SW_INDEX -> {}",
-							corner_type
-						)))
-					}
+					_ => bail!("get_corner_params -> SW_INDEX -> {}", corner_type),
 				};
 				(
 					pos_name_and_value.0,
@@ -394,21 +370,14 @@ impl PrefHolder {
 					glob::FLAT => {
 						let nw_flat = match self.nw_flat {
 							Some(value) => value,
-							None => {
-								return Err(error::ReadError::Generic(format!(
-									"get_corner_params -> NW_INDEX -> glob::FLAT -> {:?}",
-									self.nw_flat
-								)))
-							}
+							None => bail!(
+								"get_corner_params -> NW_INDEX -> glob::FLAT -> {:?}",
+								self.nw_flat
+							),
 						};
 						("nw_flat", nw_flat)
 					}
-					_ => {
-						return Err(error::ReadError::Generic(format!(
-							"get_corner_params -> NW_INDEX -> {}",
-							corner_type
-						)))
-					}
+					_ => bail!("get_corner_params -> NW_INDEX -> {}", corner_type),
 				};
 				(
 					pos_name_and_value.0,
@@ -419,12 +388,7 @@ impl PrefHolder {
 					self.north_step,
 				)
 			}
-			_ => {
-				return Err(error::ReadError::Generic(format!(
-					"get_corner_params -> {}",
-					corner_dir
-				)))
-			}
+			_ => bail!("get_corner_params -> {}", corner_dir),
 		};
 		let x_coordinate = self.icon_positition_to_x_coordinate(
 			corner_parameters.0,
@@ -455,10 +419,10 @@ impl PrefHolder {
 		frame_offset: u32,
 		width_in_frames: u32,
 		max_total_frames: u32,
-	) -> Result<u32, error::ReadError> {
+	) -> Result<u32> {
 		let icon_position = position * self.frames_per_state + frame_offset;
 		if icon_position > max_total_frames {
-			return Err(error::ReadError::Generic(format!("Unlawful value for {} ({}), larger than the maximum amount of frames this image holds ({})", var_name, position, max_total_frames)));
+			bail!("Unlawful value for {} ({}), larger than the maximum amount of frames this image holds ({})", var_name, position, max_total_frames);
 		};
 		Ok(icon_position % width_in_frames)
 	}
@@ -470,10 +434,10 @@ impl PrefHolder {
 		frame_offset: u32,
 		width_in_frames: u32,
 		max_total_frames: u32,
-	) -> Result<u32, error::ReadError> {
+	) -> Result<u32> {
 		let icon_position = position * self.frames_per_state + frame_offset;
 		if icon_position > max_total_frames {
-			return Err(error::ReadError::Generic(format!("Unlawful value for {} ({}), larger than the maximum amount of frames this image holds ({})", var_name, position, max_total_frames)));
+			bail!("Unlawful value for {} ({}), larger than the maximum amount of frames this image holds ({})", var_name, position, max_total_frames);
 		};
 		Ok(icon_position / width_in_frames) // This operation rounds towards zero, truncating any fractional part of the exact result, essentially a floor() function.
 	}
@@ -490,20 +454,18 @@ pub fn read_some_u32_config(source: &yaml_rust::yaml::Yaml, index: &str) -> Opti
 	};
 }
 
-pub fn read_necessary_u32_config(
-	source: &yaml_rust::yaml::Yaml,
-	index: &str,
-) -> Result<u32, error::ReadError> {
+pub fn read_necessary_u32_config(source: &yaml_rust::yaml::Yaml, index: &str) -> Result<u32> {
 	let config = &source[index];
 	if config.is_badvalue() {
-		return Err(error::ReadError::Generic(format!("Undefined value for {}. This is a necessary config. Please check config.yaml in the examples folder for documentation.", index)));
+		bail!("Undefined value for {}. This is a necessary config. Please check config.yaml in the examples folder for documentation.", index);
 	};
 	return match source[index].as_i64() {
 		Some(thing) => Ok(thing as u32),
-		None => Err(error::ReadError::Generic(format!(
+		None => bail!(
 			"Unlawful value for {}, not a proper number: ({:?})",
-			index, source[index]
-		))),
+			index,
+			source[index]
+		),
 	};
 }
 
@@ -518,7 +480,7 @@ pub fn read_some_string_config(source: &yaml_rust::yaml::Yaml, index: &str) -> O
 	};
 }
 
-pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError> {
+pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 	let config_path;
 	let last_slash = caller_path.rfind(|c| c == '/' || c == '\\');
 	if last_slash != None {
@@ -527,10 +489,9 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 		config_path = ".".to_string();
 	};
 	let path = Path::new(&config_path).join("config.yaml");
-	let mut file = File::open(path).map_err(|x| error::ReadError::Io(x))?;
+	let mut file = File::open(path)?;
 	let mut contents = String::new();
-	file.read_to_string(&mut contents)
-		.map_err(|x| error::ReadError::Io(x))?;
+	file.read_to_string(&mut contents)?;
 	let docs = YamlLoader::load_from_str(&contents).unwrap();
 	let doc = &docs[0];
 
@@ -563,10 +524,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let icon_size_x = match read_some_u32_config(&doc, "icon_size_x") {
 		Some(thing) => {
 			if thing <= 0 {
-				return Err(error::ReadError::Generic(format!(
-					"Unlawful value for icon_size_x: {}",
-					thing
-				)));
+				bail!("Unlawful value for icon_size_x: {}", thing);
 			} else {
 				thing
 			}
@@ -576,10 +534,11 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let west_start = match read_some_u32_config(&doc, "west_start") {
 		Some(thing) => {
 			if thing > icon_size_x {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for west_start ({}), larger than icon_size_x ({})",
-					thing, icon_size_x
-				)));
+					thing,
+					icon_size_x
+				);
 			} else {
 				thing
 			}
@@ -589,24 +548,33 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let west_end = match read_some_u32_config(&doc, "west_end") {
 		Some(thing) => {
 			if thing > icon_size_x || thing < west_start {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for west_end ({}), cannot be larger than icon_size_x ({}) nor smaller than west_start ({})",
 					thing, icon_size_x, west_start
-				)));
+				);
 			} else {
 				thing
 			}
 		}
-		None => icon_size_x / 2,
+		None => {
+			let new_west_end = icon_size_x / 2;
+			if new_west_end < west_start {
+				bail!(
+					"Custom value defined for west_start ({}) is higher than the default for the undefined west_end ({}). Define one for west_end as well.",
+					west_start, new_west_end
+				);
+			};
+			new_west_end
+		}
 	};
-	let west_step =  west_end - west_start;
+	let west_step = west_end - west_start;
 	let east_start = match read_some_u32_config(&doc, "east_start") {
 		Some(thing) => {
 			if thing > icon_size_x || thing < west_end {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for east_start ({}), cannot be larger than icon_size_x ({}) nor smaller than west_end ({})",
 					thing, icon_size_x, west_end
-				)));
+				);
 			} else {
 				thing
 			}
@@ -616,10 +584,10 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let east_end = match read_some_u32_config(&doc, "east_end") {
 		Some(thing) => {
 			if thing > icon_size_x || thing < east_start {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for east_end ({}), cannot be larger than icon_size_x ({}) nor smaller than east_start ({})",
 					thing, icon_size_x, east_start
-				)));
+				);
 			} else {
 				thing
 			}
@@ -631,10 +599,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let icon_size_y = match read_some_u32_config(&doc, "icon_size_y") {
 		Some(thing) => {
 			if thing <= 0 {
-				return Err(error::ReadError::Generic(format!(
-					"Unlawful value for icon_size_y: {}",
-					thing
-				)));
+				bail!("Unlawful value for icon_size_y: {}", thing);
 			} else {
 				thing
 			}
@@ -644,10 +609,11 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let north_start = match read_some_u32_config(&doc, "north_start") {
 		Some(thing) => {
 			if thing > icon_size_y {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for north_start ({}), larger than icon_size_y ({})",
-					thing, icon_size_y
-				)));
+					thing,
+					icon_size_y
+				);
 			} else {
 				thing
 			}
@@ -657,24 +623,33 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let north_end = match read_some_u32_config(&doc, "north_end") {
 		Some(thing) => {
 			if thing > icon_size_y || thing < north_start {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for north_end ({}), cannot be larger than north_start ({}) nor smaller than north_start ({})",
 					thing, north_start, north_start
-				)));
+				);
 			} else {
 				thing
 			}
 		}
-		None => icon_size_y / 2,
+		None => {
+			let new_north_end = icon_size_y / 2;
+			if new_north_end < north_start {
+				bail!(
+					"Custom value defined for north_start ({}) is higher than the default for the undefined north_end ({}). Define one for north_end as well.",
+					north_start, new_north_end
+				);
+			};
+			new_north_end
+		}
 	};
-	let north_step =  north_end - north_start;
+	let north_step = north_end - north_start;
 	let south_start = match read_some_u32_config(&doc, "south_start") {
 		Some(thing) => {
 			if thing > icon_size_y || thing < north_end {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for south_start ({}), cannot be larger than icon_size_y ({}) nor smaller than north_end ({})",
 					thing, icon_size_y, north_end
-				)));
+				);
 			} else {
 				thing
 			}
@@ -684,10 +659,10 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let south_end = match read_some_u32_config(&doc, "south_end") {
 		Some(thing) => {
 			if thing > icon_size_y || thing < south_start {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for south_end ({}), cannot be larger than icon_size_y ({}) nor smaller than south_start ({})",
 					thing, icon_size_y, south_start
-				)));
+				);
 			} else {
 				thing
 			}
@@ -699,10 +674,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let output_icon_size_x = match read_some_u32_config(&doc, "output_icon_size_x") {
 		Some(thing) => {
 			if thing <= 0 {
-				return Err(error::ReadError::Generic(format!(
-					"Unlawful value for output_icon_size_x: {}",
-					thing
-				)));
+				bail!("Unlawful value for output_icon_size_x: {}", thing);
 			} else {
 				thing
 			}
@@ -712,10 +684,10 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let output_west_start = match read_some_u32_config(&doc, "output_west_start") {
 		Some(thing) => {
 			if thing > output_icon_size_x + west_start - east_end {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for output_west_start ({}), larger than output_icon_size_x ({}) plus west_start ({}) minus east_end ({})",
 					thing, output_icon_size_x, west_start, east_end
-				)));
+				);
 			} else {
 				thing
 			}
@@ -726,10 +698,10 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 		Some(thing) => {
 			// east starting point cannot be larger than icon minus starting offset (output_west_start) minus the west corners' step (west_end - west_start).
 			if thing > output_icon_size_x - output_west_start - west_end + west_start {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for output_east_start ({}), larger than output_icon_size_x ({}) minus output_west_start ({}) minus west_end ({}) plus west_start ({})",
 					thing, output_icon_size_x, output_west_start, west_end, west_start
-				)));
+				);
 			} else {
 				thing
 			}
@@ -740,10 +712,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let output_icon_size_y = match read_some_u32_config(&doc, "output_icon_size_y") {
 		Some(thing) => {
 			if thing <= 0 {
-				return Err(error::ReadError::Generic(format!(
-					"Unlawful value for output_icon_size_y: {}",
-					thing
-				)));
+				bail!("Unlawful value for output_icon_size_y: {}", thing);
 			} else {
 				thing
 			}
@@ -753,10 +722,10 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let output_north_start = match read_some_u32_config(&doc, "output_north_start") {
 		Some(thing) => {
 			if thing > output_icon_size_y + north_start - south_end {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for output_north_start ({}), larger than output_icon_size_y ({}) plus north_start ({}) minus south_end ({})",
 					thing, output_icon_size_y, north_start, south_end
-				)));
+				);
 			} else {
 				thing
 			}
@@ -767,10 +736,10 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 		Some(thing) => {
 			// south starting point cannot be larger than icon minus starting offset (output_north_start) minus the north corners' step (north_end - north_start).
 			if thing > output_icon_size_y - output_north_start - north_end + north_start {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"Unlawful value for output_south_start ({}), larger than output_icon_size_y ({}) minus output_north_start ({}) minus north_end ({}) plus north_start ({})",
 					thing, output_icon_size_y, output_north_start, north_end, north_start
-				)));
+				);
 			} else {
 				thing
 			}
@@ -781,10 +750,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 	let frames_per_state = match read_some_u32_config(&doc, "frames_per_state") {
 		Some(thing) => {
 			if thing <= 0 {
-				return Err(error::ReadError::Generic(format!(
-					"Unlawful value for frames_per_state: {}",
-					thing
-				)));
+				bail!("Unlawful value for frames_per_state: {}", thing);
 			} else {
 				thing
 			}
@@ -799,27 +765,27 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 		let mut delay_vec = vec![];
 		if doc["delay"].is_badvalue() {
 			for _frame in 0..frames_per_state {
-				delay_vec.push(1) // List is empty, let's fill it with an arbitrary value.
+				delay_vec.push(1 as f32) // List is empty, let's fill it with an arbitrary value.
 			}
 		} else {
 			let yaml_delay;
 			match doc["delay"].as_vec() {
 					Some(thing) => yaml_delay = thing,
-					None => return Err(error::ReadError::Generic(format!("Delay config improperly set. Please look at the example files for the proper format. Contents: {:?}", doc["delay"])))
+					None => bail!("Delay config improperly set. Please look at the example files for the proper format. Contents: {:?}", doc["delay"])
 				};
 			for delay_value in yaml_delay.iter() {
-				delay_vec.push(delay_value.as_i64().unwrap() as u32);
+				delay_vec.push(delay_value.as_f64().unwrap() as f32);
 			}
 			if delay_vec.len() as u32 > frames_per_state {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 			"Higher number of entries in the delay input ({}) than the frames_per_state value ({}). delay entries: {:?}",
 			delay_vec.len(), frames_per_state, delay_vec
-		)));
+		);
 			} else if (delay_vec.len() as u32) < frames_per_state {
 				// Too few entries defined, we'll have to get creative and fill in the blanks.
 				if delay_vec.len() == 0 {
 					for _frame in 0..frames_per_state {
-						delay_vec.push(1) // List is empty, let's fill it with an arbitrary value.
+						delay_vec.push(1 as f32) // List is empty, let's fill it with an arbitrary value.
 					}
 				} else {
 					let mut index = 0;
@@ -860,31 +826,20 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 		let mut prefab_map: HashMap<u8, u32> = HashMap::new();
 		let yaml_prefabs = match doc["prefabs"].as_hash() {
 			Some(thing) => thing,
-			None => {
-				return Err(error::ReadError::Generic(format!(
-					"prefabs value improperly setup: {:?}",
-					doc["prefabs"]
-				)))
-			}
+			None => bail!("prefabs value improperly setup: {:?}", doc["prefabs"]),
 		};
 		for (prefab_signature, position) in yaml_prefabs.iter() {
 			let signature = match prefab_signature.as_i64() {
 				Some(thing) => thing as u8,
-				None => {
-					return Err(error::ReadError::Generic(format!(
-						"prefab signature value improperly: {:?}",
-						prefab_signature
-					)))
-				}
+				None => bail!("prefab signature value improperly: {:?}", prefab_signature),
 			};
 			let position = match position.as_i64() {
 				Some(thing) => thing as u32,
-				None => {
-					return Err(error::ReadError::Generic(format!(
-						"prefab value improperly set for {}: {:?}",
-						signature, position
-					)))
-				}
+				None => bail!(
+					"prefab value improperly set for {}: {:?}",
+					signature,
+					position
+				),
 			};
 			prefab_map.insert(signature, position);
 		}
@@ -898,40 +853,38 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 		let mut overlays_map: HashMap<u8, Vec<u32>> = HashMap::new();
 		let yaml_prefab_overlays =  match doc["prefab_overlays"].as_hash() {
 			Some(thing) => thing,
-			None => return Err(error::ReadError::Generic(format!("prefab_overlays defined with the wrong format. See the config.yaml in the example folder for a valid one. Read value: {:?}", doc["prefab_overlays"])))
+			None => bail!("prefab_overlays defined with the wrong format. See the config.yaml in the example folder for a valid one. Read value: {:?}", doc["prefab_overlays"])
 		};
 		for (overlay_signature, coords_list) in yaml_prefab_overlays.iter() {
 			let signature = match overlay_signature.as_i64() {
 				Some(thing) => thing as u8,
-				None => return Err(error::ReadError::Generic(format!("prefab_overlays signature defined with the wrong format. See the config.yaml in the example folder for a valid one. Read value: {:?}", overlay_signature)))
+				None => bail!("prefab_overlays signature defined with the wrong format. See the config.yaml in the example folder for a valid one. Read value: {:?}", overlay_signature)
 			};
 			let coords_list = match coords_list.as_vec() {
 				Some(thing) => thing,
-				None => {
-					return Err(error::ReadError::Generic(format!(
-						"prefab_overlays values for {} signature improperly set: {:?}",
-						signature, coords_list
-					)))
-				}
+				None => bail!(
+					"prefab_overlays values for {} signature improperly set: {:?}",
+					signature,
+					coords_list
+				),
 			};
 			let mut overlay_vec = vec![];
 			for value in coords_list.iter() {
 				let value = match value.as_i64() {
 					Some(thing) => thing as u32,
-					None => {
-						return Err(error::ReadError::Generic(format!(
-							"Improper value found in prefab_overlays for signature {}: {:?}",
-							signature, value
-						)))
-					}
+					None => bail!(
+						"Improper value found in prefab_overlays for signature {}: {:?}",
+						signature,
+						value
+					),
 				};
 				overlay_vec.push(value)
 			}
 			if overlay_vec.len() == 0 {
-				return Err(error::ReadError::Generic(format!(
+				bail!(
 					"prefab_overlays values for {} empty, this is likely not intended.",
 					signature
-				)));
+				);
 			};
 			overlays_map.insert(signature, overlay_vec);
 		}
@@ -977,7 +930,6 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder, error::ReadError>
 		west_step,
 		east_start,
 		east_step,
-	
 		icon_size_y,
 		north_start,
 		north_step,
