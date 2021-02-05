@@ -1,4 +1,4 @@
-use super::dmi::error;
+use dmi::error;
 use super::glob;
 use std::collections::HashSet;
 
@@ -97,7 +97,7 @@ pub fn smooth_dir_to_corner_type(corner: u8, smooth_dirs: u8) -> u8 {
 	}
 }
 
-pub fn dir_offset_signature(icon_signature: u8, byond_dir: u8) -> Result<u8, error::DmiError> {
+pub fn dir_offset_signature(icon_signature: u8, byond_dir: u8) -> Result<u8, dmi::error::DmiError> {
 	if byond_dir == glob::BYOND_SOUTH {
 		return Ok(icon_signature);
 	}

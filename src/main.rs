@@ -2,7 +2,6 @@
 
 //Internal modules.
 mod config;
-mod dmi;
 mod glob;
 mod helpers;
 
@@ -24,8 +23,8 @@ fn main() {
 	let prefs;
 	match config::load_configs(self_path.clone()) {
 		Ok(thing) => prefs = thing,
-		Err(e) => {
-			println!("Failed to load configs: {:#?}", e);
+		Err(_e) => {
+			println!("Failed to load configs.\nSolution: add a properly-filled config.yaml file to the folder executing the program. Check the namesake folder for examples.");
 			dont_disappear::any_key_to_continue::default();
 			return;
 		}
@@ -36,9 +35,14 @@ fn main() {
 		None => (),
 	};
 
+	if args.len() == 0 {
+		println!("Unable to produce any icons. \nSolution: Either add a file to be opened in the config.yaml file or click and drag one or more files into the executable file.");
+		dont_disappear::any_key_to_continue::default();
+		return;
+	}
+
 	let mut icons_built = 0;
 	for image_path_string in args.iter() {
-		//println!("Debug: image_path_string: {}", image_path_string);
 		let path = Path::new(&image_path_string);
 		let mut file;
 		match File::open(&path) {
