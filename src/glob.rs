@@ -2,7 +2,7 @@
 	* * GLOBAL DEFINITIONS
 	*/
 
-pub const TILE_SIZE:u32 = 32;
+pub const TILE_SIZE: u32 = 32;
 
 //In number of pixels
 pub const ORIGIN_X: u32 = 0;
