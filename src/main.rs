@@ -21,7 +21,7 @@ fn main() {
 	let self_path = args.remove(0);
 
 	let prefs;
-	match config::load_configs(self_path.clone()) {
+	match config::load_configs(self_path) {
 		Ok(thing) => prefs = thing,
 		Err(_e) => {
 			println!("Failed to load configs.\nSolution: add a properly-filled config.yaml file to the folder executing the program. Check the namesake folder for examples.");
@@ -35,14 +35,16 @@ fn main() {
 		None => (),
 	};
 
-	if args.len() == 0 {
+	if args.is_empty() {
 		println!("Unable to produce any icons. \nSolution: Either add a file to be opened in the config.yaml file or click and drag one or more files into the executable file.");
 		dont_disappear::any_key_to_continue::default();
 		return;
 	}
 
-	let mut icons_built = 0;
-	for image_path_string in args.iter() {
+	for image_path_string in args.iter().enumerate() {
+		let icons_built = image_path_string.0;
+		let image_path_string = image_path_string.1;
+
 		let path = Path::new(&image_path_string);
 		let mut file;
 		match File::open(&path) {
@@ -65,7 +67,7 @@ fn main() {
 
 		let dot_offset = image_path_string
 			.find('.')
-			.unwrap_or(image_path_string.len());
+			.unwrap_or_else(|| image_path_string.len());
 		formatted_file_name = formatted_file_name.drain(..dot_offset).collect(); //Here we remove everything after the dot. Whether .dmi or .png is the same for us.
 
 		let building_return = build_icons(cursor, formatted_file_name, &prefs, icons_built);
@@ -74,7 +76,6 @@ fn main() {
 			Err(x) => println!("Error building icon: {:#?}", x),
 		};
 		dont_disappear::any_key_to_continue::default();
-		icons_built += 1;
 	}
 
 	println!("Program finished.");
@@ -85,7 +86,7 @@ fn build_icons(
 	input: std::io::Cursor<Vec<u8>>,
 	file_string_path: String,
 	prefs: &config::PrefHolder,
-	icons_built: u32,
+	icons_built: usize,
 ) -> Result<bool> {
 	let corners_and_prefabs = prefs.build_corners_and_prefabs(input, &*file_string_path)?;
 	let corners = corners_and_prefabs.0;
@@ -110,13 +111,13 @@ fn build_icons(
 	match &prefs.output_name {
 		Some(thing) => {
 			if icons_built == 0 {
-				output_name = format!("{}", &thing)
+				output_name = thing.to_string();
 			} else {
 				output_name = format!("{}({})", &thing, icons_built + 1)
 			};
 		}
 		None => {
-			if file_string_path.len() == 0 {
+			if file_string_path.is_empty() {
 				if icons_built == 0 {
 					output_name = "output".to_string()
 				} else {
@@ -125,7 +126,7 @@ fn build_icons(
 			} else {
 				output_name = format!(
 					"{}-output",
-					helpers::trim_path_before_last_slash(file_string_path.clone())
+					helpers::trim_path_before_last_slash(file_string_path)
 				);
 			};
 		}
@@ -275,6 +276,6 @@ fn prepare_icon_states(is_diagonal: bool) -> Vec<u8> {
 		};
 		icon_variations.push(combination_key);
 	}
-	icon_variations.sort();
-	return icon_variations;
+	icon_variations.sort_unstable();
+	icon_variations
 }

@@ -1,5 +1,5 @@
-use dmi::error;
 use super::glob;
+use dmi::error;
 use std::collections::HashSet;
 
 pub fn smooth_dir_to_combination_key(smooth_dirs: u8, is_diagonal: bool) -> u8 {
@@ -28,7 +28,7 @@ pub fn smooth_dir_to_combination_key(smooth_dirs: u8, is_diagonal: bool) -> u8 {
 			combination_key |= glob::ADJ_SW;
 		}
 	}
-	return combination_key;
+	combination_key
 }
 
 pub fn smooth_dir_to_corner_type(corner: u8, smooth_dirs: u8) -> u8 {
@@ -114,36 +114,36 @@ pub fn dir_offset_signature(icon_signature: u8, byond_dir: u8) -> Result<u8, dmi
 	match byond_dir {
 		glob::BYOND_NORTH => {
 			//Reverse directions.
-			all_junctions[0] = all_junctions[0] << 1;
-			all_junctions[1] = all_junctions[1] >> 1;
-			all_junctions[2] = all_junctions[2] << 1;
-			all_junctions[3] = all_junctions[3] >> 1;
-			all_junctions[4] = all_junctions[4] << 2;
-			all_junctions[5] = all_junctions[5] << 2;
-			all_junctions[6] = all_junctions[6] >> 2;
-			all_junctions[7] = all_junctions[7] >> 2;
+			all_junctions[0] <<= 1;
+			all_junctions[1] >>= 1;
+			all_junctions[2] <<= 1;
+			all_junctions[3] >>= 1;
+			all_junctions[4] <<= 2;
+			all_junctions[5] <<= 2;
+			all_junctions[6] >>= 2;
+			all_junctions[7] >>= 2;
 		}
 		glob::BYOND_EAST => {
 			//Counter-clockwise 90 degrees rotation.
-			all_junctions[0] = all_junctions[0] << 3;
-			all_junctions[1] = all_junctions[1] << 1;
-			all_junctions[2] = all_junctions[2] >> 2;
-			all_junctions[3] = all_junctions[3] >> 2;
-			all_junctions[4] = all_junctions[4] << 3;
-			all_junctions[5] = all_junctions[5] >> 1;
-			all_junctions[6] = all_junctions[6] >> 1;
-			all_junctions[7] = all_junctions[7] >> 1;
+			all_junctions[0] <<= 3;
+			all_junctions[1] <<= 1;
+			all_junctions[2] >>= 2;
+			all_junctions[3] >>= 2;
+			all_junctions[4] <<= 3;
+			all_junctions[5] >>= 1;
+			all_junctions[6] >>= 1;
+			all_junctions[7] >>= 1;
 		}
 		glob::BYOND_WEST => {
 			//Clockwise 90 degrees rotation.
-			all_junctions[0] = all_junctions[0] << 2;
-			all_junctions[1] = all_junctions[1] << 2;
-			all_junctions[2] = all_junctions[2] >> 1;
-			all_junctions[3] = all_junctions[3] >> 3;
-			all_junctions[4] = all_junctions[4] << 1;
-			all_junctions[5] = all_junctions[5] << 1;
-			all_junctions[6] = all_junctions[6] << 1;
-			all_junctions[7] = all_junctions[7] >> 3;
+			all_junctions[0] <<= 2;
+			all_junctions[1] <<= 2;
+			all_junctions[2] >>= 1;
+			all_junctions[3] >>= 3;
+			all_junctions[4] <<= 1;
+			all_junctions[5] <<= 1;
+			all_junctions[6] <<= 1;
+			all_junctions[7] >>= 3;
 		}
 		_ => {
 			return Err(error::DmiError::Generic(format!(
@@ -168,7 +168,7 @@ pub fn dir_offset_signature(icon_signature: u8, byond_dir: u8) -> Result<u8, dmi
 
 ///Takes everything that comes before the first dot in the string, discarding the rest.
 pub fn trim_path_after_first_dot(mut text: String) -> String {
-	let dot_offset = text.find('.').unwrap_or(text.len());
+	let dot_offset = text.find('.').unwrap_or_else(|| text.len());
 	text.drain(dot_offset..); //.collect();
 	text
 }
