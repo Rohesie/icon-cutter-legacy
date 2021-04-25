@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 dmi = { git = "https://github.com/Rohesie/dmi" }
-anyhow = "1.0.34"
-image = "0.23.6"
-yaml-rust = "0.4.4"
-dont_disappear = "3.0.1"
+anyhow = "1.0"
+image = "0.23"
+yaml-rust = "0.4"
+dont_disappear = "3.0"
