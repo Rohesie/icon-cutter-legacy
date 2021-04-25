@@ -197,7 +197,7 @@ impl PrefHolder {
 				}
 			}
 			let output_name = match &self.output_name {
-				Some(thing) => format!("{}", thing),
+				Some(thing) => thing.to_string(),
 				None => format!("{}-output", file_name),
 			};
 			corners_image
@@ -448,10 +448,8 @@ pub fn read_some_u32_config(source: &yaml_rust::yaml::Yaml, index: &str) -> Opti
 	if config.is_badvalue() {
 		return None;
 	}
-	return match source[index].as_i64() {
-		Some(thing) => Some(thing as u32),
-		None => None,
-	};
+
+	source[index].as_i64().map(|thing| thing as u32)
 }
 
 pub fn read_necessary_u32_config(source: &yaml_rust::yaml::Yaml, index: &str) -> Result<u32> {
@@ -459,6 +457,7 @@ pub fn read_necessary_u32_config(source: &yaml_rust::yaml::Yaml, index: &str) ->
 	if config.is_badvalue() {
 		bail!("Undefined value for {}. This is a necessary config. Please check config.yaml in the examples folder for documentation.", index);
 	};
+
 	return match source[index].as_i64() {
 		Some(thing) => Ok(thing as u32),
 		None => bail!(
@@ -474,10 +473,8 @@ pub fn read_some_string_config(source: &yaml_rust::yaml::Yaml, index: &str) -> O
 	if config.is_badvalue() {
 		return None;
 	};
-	return match source[index].as_str() {
-		Some(thing) => Some(thing.to_string()),
-		None => None,
-	};
+
+	source[index].as_str().map(|thing| thing.to_string())
 }
 
 pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
@@ -523,7 +520,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 
 	let icon_size_x = match read_some_u32_config(&doc, "icon_size_x") {
 		Some(thing) => {
-			if thing <= 0 {
+			if thing == 0 {
 				bail!("Unlawful value for icon_size_x: {}", thing);
 			} else {
 				thing
@@ -598,7 +595,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 
 	let icon_size_y = match read_some_u32_config(&doc, "icon_size_y") {
 		Some(thing) => {
-			if thing <= 0 {
+			if thing == 0 {
 				bail!("Unlawful value for icon_size_y: {}", thing);
 			} else {
 				thing
@@ -673,7 +670,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 
 	let output_icon_size_x = match read_some_u32_config(&doc, "output_icon_size_x") {
 		Some(thing) => {
-			if thing <= 0 {
+			if thing == 0 {
 				bail!("Unlawful value for output_icon_size_x: {}", thing);
 			} else {
 				thing
@@ -711,7 +708,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 
 	let output_icon_size_y = match read_some_u32_config(&doc, "output_icon_size_y") {
 		Some(thing) => {
-			if thing <= 0 {
+			if thing == 0 {
 				bail!("Unlawful value for output_icon_size_y: {}", thing);
 			} else {
 				thing
@@ -749,7 +746,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 
 	let frames_per_state = match read_some_u32_config(&doc, "frames_per_state") {
 		Some(thing) => {
-			if thing <= 0 {
+			if thing == 0 {
 				bail!("Unlawful value for frames_per_state: {}", thing);
 			} else {
 				thing
@@ -765,7 +762,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 		let mut delay_vec = vec![];
 		if doc["delay"].is_badvalue() {
 			for _frame in 0..frames_per_state {
-				delay_vec.push(1 as f32) // List is empty, let's fill it with an arbitrary value.
+				delay_vec.push(1_f32) // List is empty, let's fill it with an arbitrary value.
 			}
 		} else {
 			let yaml_delay;
@@ -783,15 +780,15 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 		);
 			} else if (delay_vec.len() as u32) < frames_per_state {
 				// Too few entries defined, we'll have to get creative and fill in the blanks.
-				if delay_vec.len() == 0 {
+				if delay_vec.is_empty() {
 					for _frame in 0..frames_per_state {
-						delay_vec.push(1 as f32) // List is empty, let's fill it with an arbitrary value.
+						delay_vec.push(1_f32) // List is empty, let's fill it with an arbitrary value.
 					}
 				} else {
-					let mut index = 0;
-					for _frame in (delay_vec.len() as u32)..frames_per_state {
+					for _frame in ((delay_vec.len() as u32)..frames_per_state).enumerate() {
+						let index = _frame.0;
+						let _frame = _frame.1;
 						delay_vec.push(delay_vec[index]); // We fill the list repeating the given pattern.
-						index += 1;
 					}
 				};
 			};
@@ -803,20 +800,14 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 	if doc["produce_corners"].is_badvalue() {
 		produce_corners = false;
 	} else {
-		produce_corners = match doc["produce_corners"].as_bool() {
-			Some(thing) => thing,
-			None => false,
-		};
+		produce_corners = doc["produce_corners"].as_bool().unwrap_or(false)
 	};
 
 	let produce_dirs;
 	if doc["produce_dirs"].is_badvalue() {
 		produce_dirs = false;
 	} else {
-		produce_dirs = match doc["produce_dirs"].as_bool() {
-			Some(thing) => thing,
-			None => false,
-		};
+		produce_dirs = doc["produce_dirs"].as_bool().unwrap_or(false)
 	};
 
 	let prefabs;
@@ -880,7 +871,7 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 				};
 				overlay_vec.push(value)
 			}
-			if overlay_vec.len() == 0 {
+			if overlay_vec.is_empty() {
 				bail!(
 					"prefab_overlays values for {} empty, this is likely not intended.",
 					signature
@@ -892,45 +883,24 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 	};
 
 	let dmi_version = match read_some_string_config(&doc, "dmi_version") {
-		Some(thing) => thing.to_string(),
+		Some(thing) => thing,
 		None => "4.0".to_string(),
 	};
 
 	let is_diagonal = se_flat != None && nw_flat != None && ne_flat != None && sw_flat != None;
 
-	return Ok(PrefHolder {
-		se_convex,
-		nw_convex,
-		ne_convex,
-		sw_convex,
-		se_concave,
-		nw_concave,
-		ne_concave,
-		sw_concave,
-		se_horizontal,
-		nw_horizontal,
-		ne_horizontal,
-		sw_horizontal,
-		se_vertical,
-		nw_vertical,
-		ne_vertical,
-		sw_vertical,
-
-		se_flat,
-		nw_flat,
-		ne_flat,
-		sw_flat,
-
+	Ok(PrefHolder {
 		file_to_open,
 		output_name,
 		base_icon_state,
 
 		icon_size_x,
+		icon_size_y,
+
 		west_start,
 		west_step,
 		east_start,
 		east_step,
-		icon_size_y,
 		north_start,
 		north_step,
 		south_start,
@@ -954,6 +924,31 @@ pub fn load_configs(caller_path: String) -> Result<PrefHolder> {
 
 		dmi_version,
 
+		se_convex,
+		nw_convex,
+		ne_convex,
+		sw_convex,
+
+		se_concave,
+		nw_concave,
+		ne_concave,
+		sw_concave,
+
+		se_horizontal,
+		nw_horizontal,
+		ne_horizontal,
+		sw_horizontal,
+
+		se_vertical,
+		nw_vertical,
+		ne_vertical,
+		sw_vertical,
+
+		se_flat,
+		nw_flat,
+		ne_flat,
+		sw_flat,
+
 		is_diagonal,
-	});
+	})
 }
